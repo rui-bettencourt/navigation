@@ -24,31 +24,31 @@ def main():
 
  
 	pose_publisher = rospy.Publisher('/move_base_simple/goal', pose)
-	goal_publisher = rospy.Publisher('/move_base/goal',mbag)
+
 	memory_control = 0
 	memory = Memory()
 	rate = rospy.Rate(10.0)
 	while not rospy.is_shutdown():
 
 		#to test the code a random tf is created
-		br = tf.TransformBroadcaster()
-		br.sendTransform((0, -1, 0),tf.transformations.quaternion_from_euler(0, 0, 0),
-			rospy.Time.now(), "test_goal","map")
+		# br = tf.TransformBroadcaster()
+		# br.sendTransform((0, -1, 0),tf.transformations.quaternion_from_euler(0, 0, 0),
+		# 	rospy.Time.now(), "test_goal","map")
+
+		#TODO: listen to a topic to activate/deactivate dyn goal//name of tf to follow//what referencial should be used (default base_link or map??)
 
 		try:
 		    (trans,rot) = listener.lookupTransform('base_link', 'tracked_person', rospy.Time(0))
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 		    continue
-		if memory_control == 0:
-			memory.trans = trans
-			memory.rot = rot
-			memory_control = 1
 
-		if memory.trans != trans or memory.rot != rot or memory_control == 1:	
+		#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
+		#cycle if the pose of the tf is different
+		if memory.trans != trans or memory.rot != rot or memory_control == 0:	
 			new_pose = pose()
 			new_pose.header.stamp = rospy.Time.now()
-			new_pose.header.seq = 2
-			new_pose.header.frame_id = "map"
+			#new_pose.header.seq = 2
+			new_pose.header.frame_id = "map"		#TODO: check if this is right
 			new_pose.pose.position.x = trans[0]
 			new_pose.pose.position.y = trans[1]
 			new_pose.pose.position.z = trans[2]
@@ -71,11 +71,11 @@ def main():
 				print new_pose
 				pose_publisher.publish(new_pose)
 				rospy.sleep(1)
-			# goal_publisher.publish(new_goal)
+			
 
 			memory.trans = trans
 			memory.rot = rot
-			memory_control = 2
+			memory_control = 1
 
 		
 
