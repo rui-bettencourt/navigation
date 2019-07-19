@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/setup.sh

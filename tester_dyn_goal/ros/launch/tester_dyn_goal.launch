@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+ <!-- small description about your node -->
+ 
+ <node pkg="tester_dyn_goal" type="tester_dyn_goal_node" name="tester_dyn_goal_node"
+ respawn="false" output="screen" args="$(find tester_dyn_goal)/ros/config/my_arg_file.yaml"/>
+
+</launch>

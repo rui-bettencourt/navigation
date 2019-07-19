@@ -2,3 +2,5 @@
 *.project
 *.cproject
 
+amcl/.idea/
+amcl/cmake-build-debug/

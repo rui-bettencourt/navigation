@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+import tester_dyn_goal_ros.tester_dyn_goal_node
+
+if __name__ == '__main__':
+ tester_dyn_goal_ros.tester_dyn_goal_node.main()
