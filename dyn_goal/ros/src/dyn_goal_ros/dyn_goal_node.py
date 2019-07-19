@@ -31,13 +31,13 @@ class DynGoal(object):
 		self.pose_publisher = rospy.Publisher('/move_base_simple/goal', pose)
 
 		#Subscribe to the topic that controls the dynamic goal operation
-		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback)
+		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback) 
 
 		#initializations
 		self.memory_control = 0
 		self.memory = Memory()
 		self.control = Control()
-		self.rate = rospy.Rate(10.0)
+		self.rate = rospy.Rate(1.0)
 
 	def destroySubscribers(self):
 		self.sub_control.unregister()
@@ -69,24 +69,46 @@ class DynGoal(object):
 					new_pose.pose.orientation.z = rot[2]
 					new_pose.pose.orientation.w = rot[3]
 
-					for i in range(1,3):
-						new_pose.header.seq = i
-						print new_pose
-						self.pose_publisher.publish(new_pose)
-						rospy.sleep(1)
-					
-					self.update_head_orientation(rot)
+					print rot
 
+					# for i in range(1,3):
+					# 	new_pose.header.seq = i
+					# 	print new_pose
+					# 	self.pose_publisher.publish(new_pose)
+					# 	rospy.sleep(1)
+
+					#add threshold in differences (maybe in a function)
 					#saves in memory the last pose sent so that it sends only different poses, and not copies
 					self.memory.trans = trans
 					self.memory.rot = rot
 					self.memory_control = 1
+			self.update_head_orientation()
 					
 			#When it is off make it sleep until a new message is sent to the control topic, otherwise cycle
 			self.rate.sleep()
 
-	def update_head_orientation(self,data):
-		print("updating_head: "+rot)
+	def update_head_orientation(self):
+		print("updating_head: ")
+		
+		#get pose of the head
+		try:
+		    (trans_head,rot_head) = self.listener.lookupTransform("base_link", "head_link", rospy.Time(0))
+		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+		    # ROS_ERROR("Couldn't get head pose")
+		    return
+		print rot_head
+		#get pose of the robot
+		try:
+		    (trans_robot,rot_robot) = self.listener.lookupTransform("map", "base_link", rospy.Time(0))
+		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+			ROS_ERROR("Couldn't get robot's pose")
+			return
+
+
+		angle = math.atan((self.memory.trans[1]-trans_robot[1]) / (self.memory.trans[0]-trans_robot[0]))
+		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
+		
+		 
 
 			
 	#Callback called when receiving a control instruction		
