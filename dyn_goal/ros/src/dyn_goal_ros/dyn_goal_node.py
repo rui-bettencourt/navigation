@@ -48,7 +48,7 @@ class DynGoal(object):
 		
 		while not rospy.is_shutdown():
 			if self.control.activated:
-				
+				#obtain goal tf location in relation to origin tf (default is goal=tracked_person and origin=base_link)
 				try:
 				    (trans,rot) = self.listener.lookupTransform(self.control.origin, self.control.goal, rospy.Time(0))
 				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
@@ -75,13 +75,18 @@ class DynGoal(object):
 						self.pose_publisher.publish(new_pose)
 						rospy.sleep(1)
 					
+					self.update_head_orientation(rot)
+
 					#saves in memory the last pose sent so that it sends only different poses, and not copies
 					self.memory.trans = trans
 					self.memory.rot = rot
 					self.memory_control = 1
-				
+					
 			#When it is off make it sleep until a new message is sent to the control topic, otherwise cycle
 			self.rate.sleep()
+
+	def update_head_orientation(self,data):
+		print("updating_head: "+rot)
 
 			
 	#Callback called when receiving a control instruction		
