@@ -14,11 +14,11 @@ from dyn_goal.my_ros_independent_class import my_generic_sum_function
    
 
 class Memory:
-	rot = geometry_msgs.Point()
-	trans = geometry_msgs.Quaternion()
+	trans = geometry_msgs.Point()
+	rot = geometry_msgs.Quaternion()
 
 class Control:
-	activated = False
+	activated = True  #TODO: Just for developement. Change this to False when testing
 	goal = "tracked_person"
 	origin = "base_link"
 
@@ -54,26 +54,30 @@ class DynGoal(object):
 			if self.control.activated:
 				#obtain goal tf location in relation to origin tf (default is goal=tracked_person and origin=base_link)
 				try:
-				    (trans,rot) = self.listener.lookupTransform(self.control.origin, self.control.goal, rospy.Time(0))
+				    (pre_trans,rot) = self.listener.lookupTransform(self.control.origin, self.control.goal, rospy.Time(0))
 				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 				    continue
 
+				trans = geometry_msgs.Point()
+				trans.x = pre_trans[0]
+				trans.y = pre_trans[1]
+				trans.z = pre_trans[2]
+				print trans
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
 				#cycle if the pose of the tf is different
 				if self.memory.trans != trans or self.memory.rot != rot or self.memory_control == 0:	
+					print "Target moved!"
 					new_pose = pose()
 					new_pose.header.stamp = rospy.Time.now()
 					#new_pose.header.seq = 2
 					new_pose.header.frame_id = "map"		#TODO: check if this is right
-					new_pose.pose.position.x = trans[0]
-					new_pose.pose.position.y = trans[1]
-					new_pose.pose.position.z = trans[2]
+					new_pose.pose.position.x = trans.x
+					new_pose.pose.position.y = trans.y
+					new_pose.pose.position.z = trans.z
 					new_pose.pose.orientation.x = rot[0]
 					new_pose.pose.orientation.y = rot[1]
 					new_pose.pose.orientation.z = rot[2]
 					new_pose.pose.orientation.w = rot[3]
-
-					print rot
 
 					# for i in range(1,3):
 					# 	new_pose.header.seq = i
@@ -100,24 +104,53 @@ class DynGoal(object):
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 		    # ROS_ERROR("Couldn't get head pose")
 		    return
-		print rot_head
+
 		#get pose of the robot
 		try:
 		    (trans_robot,rot_robot) = self.listener.lookupTransform("map", "base_link", rospy.Time(0))
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-			ROS_ERROR("Couldn't get robot's pose")
+			print("Couldn't get robot's pose")
 			return
 
+		#get rotation of the robot body (check if it is yaw or pitch)
+		quaternion_to_euler_body = tf.transformations.euler_from_quaternion(rot_robot)
+		yaw_body = quaternion_to_euler_body[2]
 
-		angle = math.atan((self.memory.trans[1]-trans_robot[1]) / (self.memory.trans[0]-trans_robot[0]))
+		#calculate the angle between the POI and the robot in the map frame. The x is always positive so that when we are 
+		#with negative y the angle is negative and with positive y the angle is positive
+		angle_raw = math.atan((self.memory.trans.y-trans_robot[1]) / abs(self.memory.trans.x-trans_robot[0]))
+		#conditions to counter the decrease of the angle
+		if self.memory.trans.x-trans_robot[0] < 0 and angle_raw < 0:
+			angle_refined = - (math.pi + angle_raw)
+		elif self.memory.trans.x-trans_robot[0] < 0 and angle_raw > 0:
+			angle_refined = math.pi - angle_raw
+		else:
+			angle_refined = angle_raw
+		#transition of the angle from the map referencial to the robot referencial by removing the robot's rotation in the map referencial
+		angle = angle_refined - yaw_body
 
-		if abs(angle - rot_head[2]) > 0.1:	#tune this threshold
+		#condition to solve the case where the calculated angle and the robot rotation are in different multiples of 2*pi 
+		if angle > math.pi:
+			angle = angle - 2 * math.pi
+		elif angle < -math.pi:
+			angle = angle + 2 * math.pi
+
+		#get the rotation of the head
+		quaternion_to_euler_head = tf.transformations.euler_from_quaternion(rot_head)
+		yaw_head = quaternion_to_euler_head[2]
+
+		#compare the goal angle with the head orientation
+		print "angle and pitch : " , angle ," | " , yaw_head , "  | yaw_body : " , yaw_body, "  |  raw: " , angle_raw , "  | refined : ", angle_refined
+		if abs(angle - yaw_head) > 0.1:	#tune this threshold
 			control_head_msg = head_msg() 	#also has a layout (MultiArrayLayout. Maybe i need to work with that)
 			#i dont know if the 300 is ok. theoretically its the speed. check if i need to resize the data.
+
+			control_head_msg.data = [300 , 0]
 			control_head_msg.data[0] = 300
 			control_head_msg.data[1] = angle
-			self.head_publisher.publish(control_head_msg)
-			ROS_INFO("UPDATED HEAD ANGLE TO ", angle)
+
+			# self.head_publisher.publish(control_head_msg)
+			# ROS_INFO("UPDATED HEAD ANGLE TO ", angle)
 		return
 		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
 		
