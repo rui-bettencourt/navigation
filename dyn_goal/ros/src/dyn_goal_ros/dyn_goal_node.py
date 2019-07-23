@@ -8,6 +8,7 @@ import geometry_msgs.msg as geometry_msgs
 from geometry_msgs.msg import PoseStamped as pose
 from move_base_msgs.msg import MoveBaseGoal as move_base_goal
 from dyn_goal.msg import dyn_goal_msg
+from std_msgs.msg import UInt8MultiArray as head_msg
 
 from dyn_goal.my_ros_independent_class import my_generic_sum_function
    
@@ -29,6 +30,9 @@ class DynGoal(object):
 
 	 	#Topic to publish the pose you want to reach
 		self.pose_publisher = rospy.Publisher('/move_base_simple/goal', pose)
+
+		#Topic to publish the pose you want to reach
+		self.head_publisher = rospy.Publisher('/cmd_head', head_msg)
 
 		#Subscribe to the topic that controls the dynamic goal operation
 		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback) 
@@ -89,7 +93,7 @@ class DynGoal(object):
 
 	def update_head_orientation(self):
 		print("updating_head: ")
-		
+
 		#get pose of the head
 		try:
 		    (trans_head,rot_head) = self.listener.lookupTransform("base_link", "head_link", rospy.Time(0))
@@ -106,6 +110,15 @@ class DynGoal(object):
 
 
 		angle = math.atan((self.memory.trans[1]-trans_robot[1]) / (self.memory.trans[0]-trans_robot[0]))
+
+		if abs(angle - rot_head[2]) > 0.1:	#tune this threshold
+			control_head_msg = head_msg() 	#also has a layout (MultiArrayLayout. Maybe i need to work with that)
+			#i dont know if the 300 is ok. theoretically its the speed. check if i need to resize the data.
+			control_head_msg.data[0] = 300
+			control_head_msg.data[1] = angle
+			self.head_publisher.publish(control_head_msg)
+			ROS_INFO("UPDATED HEAD ANGLE TO ", angle)
+		return
 		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
 		
 		 
