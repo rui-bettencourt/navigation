@@ -4,11 +4,16 @@ import rospy
 import math
 import tf
 import geometry_msgs.msg as geometry_msgs
+import std_msgs
 
+from rospy import loginfo as log
 from geometry_msgs.msg import PoseStamped as pose
+from geometry_msgs.msg import PointStamped as point
 from move_base_msgs.msg import MoveBaseGoal as move_base_goal
+from std_msgs.msg import MultiArrayDimension as MAD
 from dyn_goal.msg import dyn_goal_msg
 from std_msgs.msg import UInt8MultiArray as head_msg
+
 
 from dyn_goal.my_ros_independent_class import my_generic_sum_function
    
@@ -37,15 +42,18 @@ class DynGoal(object):
 		#Subscribe to the topic that controls the dynamic goal operation
 		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback) 
 
+		#Subscribe to Person position
+		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
+
 		#initializations
 		self.memory_control = 0
 		self.memory = Memory()
 		self.control = Control()
-		self.rate = rospy.Rate(1.0)
+		self.rate = rospy.Rate(10.0)
 
 	def destroySubscribers(self):
 		self.sub_control.unregister()
-		ROS_INFO("Hope you enjoyed our service! Come back any time!")
+		log("Hope you enjoyed our service! Come back any time!")
 	
 
 	def run(self):
@@ -102,14 +110,14 @@ class DynGoal(object):
 		try:
 		    (trans_head,rot_head) = self.listener.lookupTransform("base_link", "head_link", rospy.Time(0))
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-		    # ROS_ERROR("Couldn't get head pose")
+		    rospy.logerr("Couldn't get head pose")
 		    return
 
 		#get pose of the robot
 		try:
 		    (trans_robot,rot_robot) = self.listener.lookupTransform("map", "base_link", rospy.Time(0))
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-			print("Couldn't get robot's pose")
+			rospy.logerr("Couldn't get robot's pose")
 			return
 
 		#get rotation of the robot body (check if it is yaw or pitch)
@@ -144,13 +152,23 @@ class DynGoal(object):
 		if abs(angle - yaw_head) > 0.1:	#tune this threshold
 			control_head_msg = head_msg() 	#also has a layout (MultiArrayLayout. Maybe i need to work with that)
 			#i dont know if the 300 is ok. theoretically its the speed. check if i need to resize the data.
+			control_head_msg.layout.dim = [MAD() , MAD()]
+			# control_head_msg.layout.dim[0].label = "speed"
+			# control_head_msg.layout.dim[0].size = 12
+			# control_head_msg.layout.dim[0].stride = 12
+			# control_head_msg.layout.dim[1].label = "angle"
+			# control_head_msg.layout.dim[1].size = 100
+			# control_head_msg.layout.dim[1].stride = 100
+			# control_head_msg.layout.data_offset = 10
+			#angle needs to be in degrees and the center of the robot is at 90 degrees
+			angle = 90 - (angle * 360 / (2 * math.pi))
 
-			control_head_msg.data = [300 , 0]
-			control_head_msg.data[0] = 300
-			control_head_msg.data[1] = angle
-
-			# self.head_publisher.publish(control_head_msg)
-			# ROS_INFO("UPDATED HEAD ANGLE TO ", angle)
+			control_head_msg.data = [0 , 200]
+			control_head_msg.data[1] = 200
+			control_head_msg.data[0] = angle
+			print control_head_msg
+			self.head_publisher.publish(control_head_msg)
+			log("UPDATED HEAD ANGLE TO %f", angle)
 		return
 		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
 		
@@ -162,6 +180,9 @@ class DynGoal(object):
 		self.control.activated = data.activated
 		self.control.goal = data.dyn_goal_tf
 		self.control.origin = data.origin_tf
+	#Callback called when receiving a control instruction		
+	def poiCallback(self, data):
+		self.poiPose = data
 
 
 def main():
