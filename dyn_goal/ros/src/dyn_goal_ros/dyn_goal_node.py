@@ -162,7 +162,10 @@ class DynGoal(object):
 			# control_head_msg.layout.data_offset = 10
 			#angle needs to be in degrees and the center of the robot is at 90 degrees
 			angle = 90 - (angle * 360 / (2 * math.pi))
-
+			if angle < 5: 
+				angle = 5
+			elif angle > 175:
+				angle = 175 
 			control_head_msg.data = [0 , 200]
 			control_head_msg.data[1] = 200
 			control_head_msg.data[0] = angle
