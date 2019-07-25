@@ -54,6 +54,7 @@ CMAKE_BINARY_DIR = /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug
 include CMakeFiles/costmap_2d_generate_messages_cpp.dir/progress.make
 
 CMakeFiles/costmap_2d_generate_messages_cpp: devel/include/costmap_2d/VoxelGrid.h
+CMakeFiles/costmap_2d_generate_messages_cpp: devel/include/costmap_2d/dyn_goal_msg.h
 
 
 devel/include/costmap_2d/VoxelGrid.h: /opt/ros/kinetic/lib/gencpp/gen_cpp.py
@@ -65,8 +66,15 @@ devel/include/costmap_2d/VoxelGrid.h: /opt/ros/kinetic/share/gencpp/msg.h.templa
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating C++ code from costmap_2d/VoxelGrid.msg"
 	cd /home/exca/ros_ws/src/navigation/costmap_2d && /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/gencpp/cmake/../../../lib/gencpp/gen_cpp.py /home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg -Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg -Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg -Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg -Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg -Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg -Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg -p costmap_2d -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/include/costmap_2d -e /opt/ros/kinetic/share/gencpp/cmake/..
 
+devel/include/costmap_2d/dyn_goal_msg.h: /opt/ros/kinetic/lib/gencpp/gen_cpp.py
+devel/include/costmap_2d/dyn_goal_msg.h: ../msg/dyn_goal_msg.msg
+devel/include/costmap_2d/dyn_goal_msg.h: /opt/ros/kinetic/share/gencpp/msg.h.template
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating C++ code from costmap_2d/dyn_goal_msg.msg"
+	cd /home/exca/ros_ws/src/navigation/costmap_2d && /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/gencpp/cmake/../../../lib/gencpp/gen_cpp.py /home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg -Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg -Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg -Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg -Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg -Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg -Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg -p costmap_2d -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/include/costmap_2d -e /opt/ros/kinetic/share/gencpp/cmake/..
+
 costmap_2d_generate_messages_cpp: CMakeFiles/costmap_2d_generate_messages_cpp
 costmap_2d_generate_messages_cpp: devel/include/costmap_2d/VoxelGrid.h
+costmap_2d_generate_messages_cpp: devel/include/costmap_2d/dyn_goal_msg.h
 costmap_2d_generate_messages_cpp: CMakeFiles/costmap_2d_generate_messages_cpp.dir/build.make
 
 .PHONY : costmap_2d_generate_messages_cpp

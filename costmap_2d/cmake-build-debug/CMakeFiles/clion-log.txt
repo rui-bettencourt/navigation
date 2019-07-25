@@ -82,7 +82,7 @@ but not all the files it references.
 --   chrono
 --   date_time
 --   atomic
--- costmap_2d: 1 messages, 0 services
+-- costmap_2d: 2 messages, 0 services
 -- Configuring done
 -- Generating done
 -- Build files have been written to: /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug

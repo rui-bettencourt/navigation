@@ -7,3 +7,4 @@ amcl/cmake-build-debug/
 dyn_goal/ros/src/dyn_goal_ros/dyn_goal_node.pyc
 *.log
 *.pyc
+costmap_2d/cmake-build-debug

@@ -17,6 +17,7 @@ find_package(catkin REQUIRED
             roscpp
             sensor_msgs
             std_msgs
+            tf2_msgs
             tf
             visualization_msgs
             voxel_grid
@@ -41,6 +42,7 @@ add_message_files(
     DIRECTORY msg
     FILES
     VoxelGrid.msg
+    dyn_goal_msg.msg
 )
 
 generate_messages(

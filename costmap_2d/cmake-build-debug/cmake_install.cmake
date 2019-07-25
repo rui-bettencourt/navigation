@@ -120,7 +120,10 @@ file(INSTALL DESTINATION "/usr/local" TYPE FILE FILES "/home/exca/ros_ws/src/nav
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/costmap_2d/msg" TYPE FILE FILES "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/costmap_2d/msg" TYPE FILE FILES
+    "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
+    "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
+    )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)

@@ -1,6 +1,6 @@
 # generated from genmsg/cmake/pkg-genmsg.cmake.em
 
-message(STATUS "costmap_2d: 1 messages, 0 services")
+message(STATUS "costmap_2d: 2 messages, 0 services")
 
 set(MSG_I_FLAGS "-Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg;-Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg;-Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg;-Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg;-Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg;-Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg;-Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg")
 
@@ -22,6 +22,11 @@ add_custom_target(_costmap_2d_generate_messages_check_deps_${_filename}
   COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "costmap_2d" "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg" "geometry_msgs/Point32:std_msgs/Header:geometry_msgs/Vector3"
 )
 
+get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" NAME_WE)
+add_custom_target(_costmap_2d_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "costmap_2d" "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" ""
+)
+
 #
 #  langs = gencpp;geneus;genlisp;gennodejs;genpy
 #
@@ -32,6 +37,12 @@ _generate_msg_cpp(costmap_2d
   "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Point32.msg;/opt/ros/kinetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Vector3.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/costmap_2d
+)
+_generate_msg_cpp(costmap_2d
+  "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
+  "${MSG_I_FLAGS}"
+  ""
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/costmap_2d
 )
 
@@ -51,6 +62,8 @@ add_dependencies(costmap_2d_generate_messages costmap_2d_generate_messages_cpp)
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg" NAME_WE)
 add_dependencies(costmap_2d_generate_messages_cpp _costmap_2d_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" NAME_WE)
+add_dependencies(costmap_2d_generate_messages_cpp _costmap_2d_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(costmap_2d_gencpp)
@@ -65,6 +78,12 @@ _generate_msg_eus(costmap_2d
   "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Point32.msg;/opt/ros/kinetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Vector3.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/costmap_2d
+)
+_generate_msg_eus(costmap_2d
+  "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
+  "${MSG_I_FLAGS}"
+  ""
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/costmap_2d
 )
 
@@ -84,6 +103,8 @@ add_dependencies(costmap_2d_generate_messages costmap_2d_generate_messages_eus)
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg" NAME_WE)
 add_dependencies(costmap_2d_generate_messages_eus _costmap_2d_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" NAME_WE)
+add_dependencies(costmap_2d_generate_messages_eus _costmap_2d_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(costmap_2d_geneus)
@@ -98,6 +119,12 @@ _generate_msg_lisp(costmap_2d
   "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Point32.msg;/opt/ros/kinetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Vector3.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/costmap_2d
+)
+_generate_msg_lisp(costmap_2d
+  "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
+  "${MSG_I_FLAGS}"
+  ""
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/costmap_2d
 )
 
@@ -117,6 +144,8 @@ add_dependencies(costmap_2d_generate_messages costmap_2d_generate_messages_lisp)
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg" NAME_WE)
 add_dependencies(costmap_2d_generate_messages_lisp _costmap_2d_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" NAME_WE)
+add_dependencies(costmap_2d_generate_messages_lisp _costmap_2d_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(costmap_2d_genlisp)
@@ -131,6 +160,12 @@ _generate_msg_nodejs(costmap_2d
   "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Point32.msg;/opt/ros/kinetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Vector3.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/costmap_2d
+)
+_generate_msg_nodejs(costmap_2d
+  "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
+  "${MSG_I_FLAGS}"
+  ""
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/costmap_2d
 )
 
@@ -150,6 +185,8 @@ add_dependencies(costmap_2d_generate_messages costmap_2d_generate_messages_nodej
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg" NAME_WE)
 add_dependencies(costmap_2d_generate_messages_nodejs _costmap_2d_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" NAME_WE)
+add_dependencies(costmap_2d_generate_messages_nodejs _costmap_2d_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(costmap_2d_gennodejs)
@@ -164,6 +201,12 @@ _generate_msg_py(costmap_2d
   "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Point32.msg;/opt/ros/kinetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/kinetic/share/geometry_msgs/cmake/../msg/Vector3.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/costmap_2d
+)
+_generate_msg_py(costmap_2d
+  "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
+  "${MSG_I_FLAGS}"
+  ""
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/costmap_2d
 )
 
@@ -182,6 +225,8 @@ add_dependencies(costmap_2d_generate_messages costmap_2d_generate_messages_py)
 
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg" NAME_WE)
+add_dependencies(costmap_2d_generate_messages_py _costmap_2d_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg" NAME_WE)
 add_dependencies(costmap_2d_generate_messages_py _costmap_2d_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility

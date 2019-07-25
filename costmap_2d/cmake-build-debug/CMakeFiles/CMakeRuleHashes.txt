@@ -1,5 +1,6 @@
 # Hashes of file build rules.
 304b233983b0e38a4c1484c91d881be6 CMakeFiles/_costmap_2d_generate_messages_check_deps_VoxelGrid
+ed392c08432a555301c9b429a2eca540 CMakeFiles/_costmap_2d_generate_messages_check_deps_dyn_goal_msg
 81fbc2b4ca89d3beb1dfa8e7a7e208af CMakeFiles/_run_tests_costmap_2d_gtest_array_parser_test
 ec26c2438f7f502abdc5caa7834f22a6 CMakeFiles/_run_tests_costmap_2d_gtest_coordinates_test
 62741e0d0f2c7b365a16201528651290 CMakeFiles/_run_tests_costmap_2d_rostest_test_footprint_tests.launch
@@ -30,9 +31,14 @@ f13927cd9b9195c68179b592abc6a8f6 devel/include/costmap_2d/GenericPluginConfig.h
 4fa5c3151f0bab5881f5badbb2cde40a devel/include/costmap_2d/ObstaclePluginConfig.h
 4c02203c049d02ac3b801294d16ee101 devel/include/costmap_2d/VoxelGrid.h
 d90bf2d1683cebba189d28e9e1810225 devel/include/costmap_2d/VoxelPluginConfig.h
+1143be362b61b41e3064f67f19b15041 devel/include/costmap_2d/dyn_goal_msg.h
 1f4d2bcc2e5c0f29e145ea57497ba171 devel/lib/python2.7/dist-packages/costmap_2d/msg/_VoxelGrid.py
 a67480f07475d8cd85f07a246fbe336f devel/lib/python2.7/dist-packages/costmap_2d/msg/__init__.py
+815463959d43041f670cb43b3ce4303e devel/lib/python2.7/dist-packages/costmap_2d/msg/_dyn_goal_msg.py
 e7d0098dddc3a3bc668cef459fac0825 devel/share/common-lisp/ros/costmap_2d/msg/VoxelGrid.lisp
+69f4c9696c859d2b2f534c8ebf3eb075 devel/share/common-lisp/ros/costmap_2d/msg/dyn_goal_msg.lisp
 931a354038e64255fb29474659360082 devel/share/gennodejs/ros/costmap_2d/msg/VoxelGrid.js
+952666036e30cebc4906f7b621ce48fd devel/share/gennodejs/ros/costmap_2d/msg/dyn_goal_msg.js
 328996a193b26d0d72fcc453913c1f4a devel/share/roseus/ros/costmap_2d/manifest.l
 1bf1611eeca9efe7d9d9be091eb62f5d devel/share/roseus/ros/costmap_2d/msg/VoxelGrid.l
+46112261ca5c9df6348ed99b243a3bde devel/share/roseus/ros/costmap_2d/msg/dyn_goal_msg.l

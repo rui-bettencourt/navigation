@@ -54,6 +54,7 @@ CMAKE_BINARY_DIR = /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug
 include CMakeFiles/costmap_2d_generate_messages_eus.dir/progress.make
 
 CMakeFiles/costmap_2d_generate_messages_eus: devel/share/roseus/ros/costmap_2d/msg/VoxelGrid.l
+CMakeFiles/costmap_2d_generate_messages_eus: devel/share/roseus/ros/costmap_2d/msg/dyn_goal_msg.l
 CMakeFiles/costmap_2d_generate_messages_eus: devel/share/roseus/ros/costmap_2d/manifest.l
 
 
@@ -65,12 +66,18 @@ devel/share/roseus/ros/costmap_2d/msg/VoxelGrid.l: /opt/ros/kinetic/share/geomet
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating EusLisp code from costmap_2d/VoxelGrid.msg"
 	catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/geneus/cmake/../../../lib/geneus/gen_eus.py /home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg -Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg -Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg -Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg -Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg -Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg -Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg -p costmap_2d -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/share/roseus/ros/costmap_2d/msg
 
+devel/share/roseus/ros/costmap_2d/msg/dyn_goal_msg.l: /opt/ros/kinetic/lib/geneus/gen_eus.py
+devel/share/roseus/ros/costmap_2d/msg/dyn_goal_msg.l: ../msg/dyn_goal_msg.msg
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating EusLisp code from costmap_2d/dyn_goal_msg.msg"
+	catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/geneus/cmake/../../../lib/geneus/gen_eus.py /home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg -Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg -Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg -Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg -Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg -Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg -Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg -p costmap_2d -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/share/roseus/ros/costmap_2d/msg
+
 devel/share/roseus/ros/costmap_2d/manifest.l: /opt/ros/kinetic/lib/geneus/gen_eus.py
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating EusLisp manifest code for costmap_2d"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Generating EusLisp manifest code for costmap_2d"
 	catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/geneus/cmake/../../../lib/geneus/gen_eus.py -m -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/share/roseus/ros/costmap_2d costmap_2d std_msgs geometry_msgs map_msgs
 
 costmap_2d_generate_messages_eus: CMakeFiles/costmap_2d_generate_messages_eus
 costmap_2d_generate_messages_eus: devel/share/roseus/ros/costmap_2d/msg/VoxelGrid.l
+costmap_2d_generate_messages_eus: devel/share/roseus/ros/costmap_2d/msg/dyn_goal_msg.l
 costmap_2d_generate_messages_eus: devel/share/roseus/ros/costmap_2d/manifest.l
 costmap_2d_generate_messages_eus: CMakeFiles/costmap_2d_generate_messages_eus.dir/build.make
 

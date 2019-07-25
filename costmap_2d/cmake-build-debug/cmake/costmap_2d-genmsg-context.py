@@ -1,6 +1,6 @@
 # generated from genmsg/cmake/pkg-genmsg.context.in
 
-messages_str = "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg"
+messages_str = "/home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg;/home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg"
 services_str = ""
 pkg_name = "costmap_2d"
 dependencies_str = "std_msgs;geometry_msgs;map_msgs"

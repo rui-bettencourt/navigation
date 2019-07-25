@@ -222,6 +222,10 @@ void ObstacleLayer::onInitialize()
       target_frames.push_back(sensor_frame);
       observation_notifiers_.back()->setTargetFrames(target_frames);
     }
+
+    //New subscriptions to handle dyn_goal
+    dyn_goal_control_ = nh.subscribe("/move_base_simple/dyn_goal", 5 , &ObstacleLayer::dynGoalCallback, this);
+    dyn_goal_controller_.activated = false;
   }
 
   dsrv_ = NULL;
@@ -337,6 +341,13 @@ void ObstacleLayer::pointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& 
   buffer->unlock();
 }
 
+
+void ObstacleLayer::dynGoalCallback(const costmap_2d::dyn_goal_msg& message)
+{
+  dyn_goal_controller_= message;
+  ROS_INFO("RECEIVED DYN_GOAL");
+}
+
 void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x,
                                           double* min_y, double* max_x, double* max_y)
 {
@@ -401,6 +412,24 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
       {
         ROS_DEBUG("Computing map coords failed");
         continue;
+      }
+
+      if (dyn_goal_controller_.activated)
+      {
+        // compute the squared distance from the hitpoint to the dynamic goal
+        tf::TransformListener listener;
+
+        tf::StampedTransform transform;
+        try{
+          listener.lookupTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0), transform);
+        }catch (tf::TransformException ex){
+          ROS_ERROR("%s",ex.what());
+          ros::Duration(1.0).sleep();
+        }
+        double sq_dist_dyn = pow((mx - transform.getOrigin().x()),2) + pow((my-transform.getOrigin().y()),2);
+        ROS_INFO("X: %d | Y: %d | dist: %f",mx,my,sq_dist_dyn);
+        if (sq_dist_dyn > 1)
+          continue;
       }
 
       unsigned int index = getIndex(mx, my);
@@ -616,5 +645,6 @@ void ObstacleLayer::reset()
     current_ = true;
     activate();
 }
+
 
 }  // namespace costmap_2d

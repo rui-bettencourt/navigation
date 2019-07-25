@@ -54,6 +54,7 @@ CMAKE_BINARY_DIR = /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug
 include CMakeFiles/costmap_2d_generate_messages_nodejs.dir/progress.make
 
 CMakeFiles/costmap_2d_generate_messages_nodejs: devel/share/gennodejs/ros/costmap_2d/msg/VoxelGrid.js
+CMakeFiles/costmap_2d_generate_messages_nodejs: devel/share/gennodejs/ros/costmap_2d/msg/dyn_goal_msg.js
 
 
 devel/share/gennodejs/ros/costmap_2d/msg/VoxelGrid.js: /opt/ros/kinetic/lib/gennodejs/gen_nodejs.py
@@ -64,8 +65,14 @@ devel/share/gennodejs/ros/costmap_2d/msg/VoxelGrid.js: /opt/ros/kinetic/share/ge
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Javascript code from costmap_2d/VoxelGrid.msg"
 	catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/gennodejs/cmake/../../../lib/gennodejs/gen_nodejs.py /home/exca/ros_ws/src/navigation/costmap_2d/msg/VoxelGrid.msg -Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg -Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg -Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg -Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg -Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg -Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg -p costmap_2d -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/share/gennodejs/ros/costmap_2d/msg
 
+devel/share/gennodejs/ros/costmap_2d/msg/dyn_goal_msg.js: /opt/ros/kinetic/lib/gennodejs/gen_nodejs.py
+devel/share/gennodejs/ros/costmap_2d/msg/dyn_goal_msg.js: ../msg/dyn_goal_msg.msg
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating Javascript code from costmap_2d/dyn_goal_msg.msg"
+	catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/gennodejs/cmake/../../../lib/gennodejs/gen_nodejs.py /home/exca/ros_ws/src/navigation/costmap_2d/msg/dyn_goal_msg.msg -Icostmap_2d:/home/exca/ros_ws/src/navigation/costmap_2d/msg -Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/kinetic/share/geometry_msgs/cmake/../msg -Imap_msgs:/opt/ros/kinetic/share/map_msgs/cmake/../msg -Isensor_msgs:/opt/ros/kinetic/share/sensor_msgs/cmake/../msg -Inav_msgs:/opt/ros/kinetic/share/nav_msgs/cmake/../msg -Iactionlib_msgs:/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg -p costmap_2d -o /home/exca/ros_ws/src/navigation/costmap_2d/cmake-build-debug/devel/share/gennodejs/ros/costmap_2d/msg
+
 costmap_2d_generate_messages_nodejs: CMakeFiles/costmap_2d_generate_messages_nodejs
 costmap_2d_generate_messages_nodejs: devel/share/gennodejs/ros/costmap_2d/msg/VoxelGrid.js
+costmap_2d_generate_messages_nodejs: devel/share/gennodejs/ros/costmap_2d/msg/dyn_goal_msg.js
 costmap_2d_generate_messages_nodejs: CMakeFiles/costmap_2d_generate_messages_nodejs.dir/build.make
 
 .PHONY : costmap_2d_generate_messages_nodejs

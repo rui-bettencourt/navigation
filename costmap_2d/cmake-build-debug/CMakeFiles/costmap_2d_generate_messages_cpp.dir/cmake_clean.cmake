@@ -1,6 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/costmap_2d_generate_messages_cpp"
   "devel/include/costmap_2d/VoxelGrid.h"
+  "devel/include/costmap_2d/dyn_goal_msg.h"
 )
 
 # Per-language clean rules from dependency scanning.

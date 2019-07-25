@@ -1,0 +1,3 @@
+bool activated
+string dyn_goal_tf
+string origin_tf

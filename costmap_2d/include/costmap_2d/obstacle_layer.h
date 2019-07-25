@@ -51,10 +51,12 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <tf/message_filter.h>
+#include <tf/transform_listener.h>
 #include <message_filters/subscriber.h>
 #include <dynamic_reconfigure/server.h>
 #include <costmap_2d/ObstaclePluginConfig.h>
 #include <costmap_2d/footprint.h>
+#include <costmap_2d/dyn_goal_msg.h>
 
 namespace costmap_2d
 {
@@ -108,6 +110,11 @@ public:
    */
   void pointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& message,
                            const boost::shared_ptr<costmap_2d::ObservationBuffer>& buffer);
+  /**
+   * @brief  A callback to handle the dynamic control messages
+   * @param message The message returned from a message notifier
+   */
+  void dynGoalCallback(const costmap_2d::dyn_goal_msg& message);
 
   // for testing purposes
   void addStaticObservation(costmap_2d::Observation& obs, bool marking, bool clearing);
@@ -167,6 +174,10 @@ protected:
   dynamic_reconfigure::Server<costmap_2d::ObstaclePluginConfig> *dsrv_;
 
   int combination_method_;
+
+  //New variables
+  ros::Subscriber dyn_goal_control_;
+  costmap_2d::dyn_goal_msg dyn_goal_controller_;
 
 private:
   void reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint32_t level);

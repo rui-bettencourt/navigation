@@ -1,6 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/costmap_2d_generate_messages_py"
   "devel/lib/python2.7/dist-packages/costmap_2d/msg/_VoxelGrid.py"
+  "devel/lib/python2.7/dist-packages/costmap_2d/msg/_dyn_goal_msg.py"
   "devel/lib/python2.7/dist-packages/costmap_2d/msg/__init__.py"
 )
 
