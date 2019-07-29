@@ -18,6 +18,7 @@ def main():
 	goal.activated = False
 	goal.dyn_goal_tf = "tracked_person"
 	goal.origin_tf = "base_link"
+	goal.dist = 1.0
 	something = " "
 
 	while not is_shutdown() and something != "exit":

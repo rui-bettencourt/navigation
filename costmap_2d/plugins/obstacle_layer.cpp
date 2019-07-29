@@ -420,16 +420,23 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
         tf::TransformListener listener;
 
         tf::StampedTransform transform;
-        try{
-          listener.lookupTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0), transform);
-        }catch (tf::TransformException ex){
-          ROS_ERROR("%s",ex.what());
-          ros::Duration(1.0).sleep();
+        //check somehow if these tfs exist //// for this i tried this if cantransform // another idea is using frame exists
+        std::string error;
+        if (listener.canTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0),&error)){
+        //if(listener.frameExists(dyn_goal_controller_.origin_tf) && listener.frameExists(dyn_goal_controller_.dyn_goal_tf)){
+          try{
+            listener.lookupTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0), transform);
+          }catch (tf::TransformException ex){
+            ROS_ERROR("%s",ex.what());
+            ros::Duration(1.0).sleep();
+          }
+          double sq_dist_dyn = pow((mx - transform.getOrigin().x()),2) + pow((my-transform.getOrigin().y()),2);
+          ROS_INFO("X: %d | Y: %d | dist: %f",mx,my,sq_dist_dyn);
+          if (sq_dist_dyn < 1) //to tune
+            continue;
+        }else{
+          ROS_ERROR("error in getting the transform from target dyn goal: %s",error.c_str());
         }
-        double sq_dist_dyn = pow((mx - transform.getOrigin().x()),2) + pow((my-transform.getOrigin().y()),2);
-        ROS_INFO("X: %d | Y: %d | dist: %f",mx,my,sq_dist_dyn);
-        if (sq_dist_dyn > 1)
-          continue;
       }
 
       unsigned int index = getIndex(mx, my);

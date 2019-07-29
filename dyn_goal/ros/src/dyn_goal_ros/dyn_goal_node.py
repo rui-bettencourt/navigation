@@ -21,11 +21,13 @@ from dyn_goal.my_ros_independent_class import my_generic_sum_function
 class Memory:
 	trans = geometry_msgs.Point()
 	rot = geometry_msgs.Quaternion()
+	control = 0
 
 class Control:
 	activated = True  #TODO: Just for developement. Change this to False when testing
 	goal = "tracked_person"
 	origin = "base_link"
+	dist = 0.0
 
 class DynGoal(object):
 	def __init__(self):
@@ -45,8 +47,10 @@ class DynGoal(object):
 		#Subscribe to Person position
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
 
+		#Thresholds
+		self.MovementThreshold = 0.5
+
 		#initializations
-		self.memory_control = 0
 		self.memory = Memory()
 		self.control = Control()
 		self.rate = rospy.Rate(10.0)
@@ -60,52 +64,101 @@ class DynGoal(object):
 		
 		while not rospy.is_shutdown():
 			if self.control.activated:
+				#set velocity to only front and a little slower
+				if self.memory.control == 0:
+					rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',0.0)
+					rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.5)
 				#obtain goal tf location in relation to origin tf (default is goal=tracked_person and origin=base_link)
 				try:
 				    (pre_trans,rot) = self.listener.lookupTransform(self.control.origin, self.control.goal, rospy.Time(0))
 				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 				    continue
 
-				trans = geometry_msgs.Point()
-				trans.x = pre_trans[0]
-				trans.y = pre_trans[1]
-				trans.z = pre_trans[2]
-				print trans
+				trans_goal = self.vectortToPoint(pre_trans)
+
+				#get pose of the robot
+				try:
+				    (self.trans_robot , self.rot_robot) = self.listener.lookupTransform("map", "base_link", rospy.Time(0))
+				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+					rospy.logerr("Couldn't get robot's pose")
+					return
+
+				trans_robot = self.vectortToPoint(self.trans_robot)
+
+				#check if it's close enough to the target using the distance threshold indicated in the control topic message
+				if self.isGoalClose(trans_robot):
+					trans_goal = trans_robot
+
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
 				#cycle if the pose of the tf is different
-				if self.memory.trans != trans or self.memory.rot != rot or self.memory_control == 0:	
+				if self.hasTargetMoved(trans_goal) or self.memory.control == 0:	
 					print "Target moved!"
 					new_pose = pose()
 					new_pose.header.stamp = rospy.Time.now()
 					#new_pose.header.seq = 2
 					new_pose.header.frame_id = "map"		#TODO: check if this is right
-					new_pose.pose.position.x = trans.x
-					new_pose.pose.position.y = trans.y
-					new_pose.pose.position.z = trans.z
+					new_pose.pose.position.x = trans_goal.x
+					new_pose.pose.position.y = trans_goal.y
+					new_pose.pose.position.z = trans_goal.z
 					new_pose.pose.orientation.x = rot[0]
 					new_pose.pose.orientation.y = rot[1]
 					new_pose.pose.orientation.z = rot[2]
 					new_pose.pose.orientation.w = rot[3]
 
-					# for i in range(1,3):
-					# 	new_pose.header.seq = i
-					# 	print new_pose
-					# 	self.pose_publisher.publish(new_pose)
-					# 	rospy.sleep(1)
+					for i in range(1,3):
+						new_pose.header.seq = i
+						print new_pose
+						self.pose_publisher.publish(new_pose)
+						rospy.sleep(1)
 
-					#add threshold in differences (maybe in a function)
+					#add threshold in differences (maybe in a function and call in the if maybe)
 					#saves in memory the last pose sent so that it sends only different poses, and not copies
-					self.memory.trans = trans
-					self.memory.rot = rot
-					self.memory_control = 1
-			self.update_head_orientation()
-					
+					self.memory.trans = trans_goal
+					self.memory.rot = rot  #rot is probably not needed
+					self.memory.control = 1
+
+				self.updateHeadOrientation()
+
+			elif self.memory.control == 1:
+				#reset the control variable and the speed params
+				self.memory.control = 0
+				rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',-0.6)
+				rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.6)
+		
 			#When it is off make it sleep until a new message is sent to the control topic, otherwise cycle
 			self.rate.sleep()
 
-	def update_head_orientation(self):
-		print("updating_head: ")
+	#Function to detect if the target movement is relevant to resend as goal
+	def hasTargetMoved(self,trans):
+		dist = self.dist2D(self.memory.trans.x , self.memory.trans.y , trans.x , trans.y)
+		if dist > self.MovementThreshold:
+			return True
+		else:
+			return False
 
+
+	#Function that detects if the goal is aleady closer than the threshold
+	def isGoalClose(self,trans):
+		dist = self.dist2D(self.memory.trans.x , self.memory.trans.y , trans.x , trans.y)
+		if dist < self.control.dist:
+			return True
+		else:
+			return False
+
+
+	def dist2D(self,x1,y1,x2,y2):
+		return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)) 
+
+	def vectortToPoint(self,vector):
+		point = geometry_msgs.Point()
+		point.x = vector[0]
+		point.y = vector[1]
+		point.z = vector[2]
+		return point
+
+
+	#Function that depending where the target is changes the orientation of the head to follow that target
+	def updateHeadOrientation(self):
 		#get pose of the head
 		try:
 		    (trans_head,rot_head) = self.listener.lookupTransform("base_link", "head_link", rospy.Time(0))
@@ -113,24 +166,17 @@ class DynGoal(object):
 		    rospy.logerr("Couldn't get head pose")
 		    return
 
-		#get pose of the robot
-		try:
-		    (trans_robot,rot_robot) = self.listener.lookupTransform("map", "base_link", rospy.Time(0))
-		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-			rospy.logerr("Couldn't get robot's pose")
-			return
-
 		#get rotation of the robot body (check if it is yaw or pitch)
-		quaternion_to_euler_body = tf.transformations.euler_from_quaternion(rot_robot)
+		quaternion_to_euler_body = tf.transformations.euler_from_quaternion(self.rot_robot)
 		yaw_body = quaternion_to_euler_body[2]
 
 		#calculate the angle between the POI and the robot in the map frame. The x is always positive so that when we are 
 		#with negative y the angle is negative and with positive y the angle is positive
-		angle_raw = math.atan((self.memory.trans.y-trans_robot[1]) / abs(self.memory.trans.x-trans_robot[0]))
+		angle_raw = math.atan((self.memory.trans.y- self.trans_robot[1]) / abs(self.memory.trans.x-self.trans_robot[0]))
 		#conditions to counter the decrease of the angle
-		if self.memory.trans.x-trans_robot[0] < 0 and angle_raw < 0:
+		if self.memory.trans.x-self.trans_robot[0] < 0 and angle_raw < 0:
 			angle_refined = - (math.pi + angle_raw)
-		elif self.memory.trans.x-trans_robot[0] < 0 and angle_raw > 0:
+		elif self.memory.trans.x-self.trans_robot[0] < 0 and angle_raw > 0:
 			angle_refined = math.pi - angle_raw
 		else:
 			angle_refined = angle_raw
@@ -167,9 +213,9 @@ class DynGoal(object):
 			elif angle > 175:
 				angle = 175 
 			control_head_msg.data = [0 , 200]
-			control_head_msg.data[1] = 200
+			control_head_msg.data[1] = 100
 			control_head_msg.data[0] = angle
-			print control_head_msg
+
 			self.head_publisher.publish(control_head_msg)
 			log("UPDATED HEAD ANGLE TO %f", angle)
 		return
@@ -183,6 +229,8 @@ class DynGoal(object):
 		self.control.activated = data.activated
 		self.control.goal = data.dyn_goal_tf
 		self.control.origin = data.origin_tf
+		self.control.dist = data.dist
+
 	#Callback called when receiving a control instruction		
 	def poiCallback(self, data):
 		self.poiPose = data
