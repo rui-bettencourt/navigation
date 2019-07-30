@@ -24,7 +24,7 @@ class Memory:
 	control = 0
 
 class Control:
-	activated = True  #TODO: Just for developement. Change this to False when testing
+	activated = False  #TODO: Just for developement. Change this to False when testing
 	goal = "tracked_person"
 	origin = "base_link"
 	dist = 0.0
@@ -48,7 +48,7 @@ class DynGoal(object):
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
 
 		#Thresholds
-		self.MovementThreshold = 0.5
+		self.MovementThreshold = 0.25
 
 		#initializations
 		self.memory = Memory()
@@ -56,6 +56,8 @@ class DynGoal(object):
 		self.rate = rospy.Rate(10.0)
 
 	def destroySubscribers(self):
+		rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',-0.6)
+		rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.6)
 		self.sub_control.unregister()
 		log("Hope you enjoyed our service! Come back any time!")
 	
@@ -78,7 +80,7 @@ class DynGoal(object):
 
 				#get pose of the robot
 				try:
-				    (self.trans_robot , self.rot_robot) = self.listener.lookupTransform("map", "base_link", rospy.Time(0))
+				    (self.trans_robot , self.rot_robot) = self.listener.lookupTransform("/map", "/base_link", rospy.Time(0))
 				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 					rospy.logerr("Couldn't get robot's pose")
 					return
@@ -87,7 +89,9 @@ class DynGoal(object):
 
 				#check if it's close enough to the target using the distance threshold indicated in the control topic message
 				if self.isGoalClose(trans_robot):
+					self.memory.trans = trans_goal
 					trans_goal = trans_robot
+
 
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
 				#cycle if the pose of the tf is different
@@ -116,6 +120,10 @@ class DynGoal(object):
 					self.memory.trans = trans_goal
 					self.memory.rot = rot  #rot is probably not needed
 					self.memory.control = 1
+				else:
+					self.memory.trans = trans_goal
+					self.memory.rot = rot  #rot is probably not needed
+					self.memory.control = 1
 
 				self.updateHeadOrientation()
 
@@ -141,6 +149,7 @@ class DynGoal(object):
 	def isGoalClose(self,trans):
 		dist = self.dist2D(self.memory.trans.x , self.memory.trans.y , trans.x , trans.y)
 		if dist < self.control.dist:
+			print "Too close!!!!!!!!!!!!"
 			return True
 		else:
 			return False
@@ -172,52 +181,53 @@ class DynGoal(object):
 
 		#calculate the angle between the POI and the robot in the map frame. The x is always positive so that when we are 
 		#with negative y the angle is negative and with positive y the angle is positive
-		angle_raw = math.atan((self.memory.trans.y- self.trans_robot[1]) / abs(self.memory.trans.x-self.trans_robot[0]))
-		#conditions to counter the decrease of the angle
-		if self.memory.trans.x-self.trans_robot[0] < 0 and angle_raw < 0:
-			angle_refined = - (math.pi + angle_raw)
-		elif self.memory.trans.x-self.trans_robot[0] < 0 and angle_raw > 0:
-			angle_refined = math.pi - angle_raw
-		else:
-			angle_refined = angle_raw
-		#transition of the angle from the map referencial to the robot referencial by removing the robot's rotation in the map referencial
-		angle = angle_refined - yaw_body
+		if self.memory.trans.x-self.trans_robot[0] != 0:
+			angle_raw = math.atan((self.memory.trans.y- self.trans_robot[1]) / abs(self.memory.trans.x-self.trans_robot[0]))
+			#conditions to counter the decrease of the angle
+			if self.memory.trans.x-self.trans_robot[0] < 0 and angle_raw < 0:
+				angle_refined = - (math.pi + angle_raw)
+			elif self.memory.trans.x-self.trans_robot[0] < 0 and angle_raw > 0:
+				angle_refined = math.pi - angle_raw
+			else:
+				angle_refined = angle_raw
+			#transition of the angle from the map referencial to the robot referencial by removing the robot's rotation in the map referencial
+			angle = angle_refined - yaw_body
 
-		#condition to solve the case where the calculated angle and the robot rotation are in different multiples of 2*pi 
-		if angle > math.pi:
-			angle = angle - 2 * math.pi
-		elif angle < -math.pi:
-			angle = angle + 2 * math.pi
+			#condition to solve the case where the calculated angle and the robot rotation are in different multiples of 2*pi 
+			if angle > math.pi:
+				angle = angle - 2 * math.pi
+			elif angle < -math.pi:
+				angle = angle + 2 * math.pi
 
-		#get the rotation of the head
-		quaternion_to_euler_head = tf.transformations.euler_from_quaternion(rot_head)
-		yaw_head = quaternion_to_euler_head[2]
+			#get the rotation of the head
+			quaternion_to_euler_head = tf.transformations.euler_from_quaternion(rot_head)
+			yaw_head = quaternion_to_euler_head[2]
 
-		#compare the goal angle with the head orientation
-		print "angle and pitch : " , angle ," | " , yaw_head , "  | yaw_body : " , yaw_body, "  |  raw: " , angle_raw , "  | refined : ", angle_refined
-		if abs(angle - yaw_head) > 0.1:	#tune this threshold
-			control_head_msg = head_msg() 	#also has a layout (MultiArrayLayout. Maybe i need to work with that)
-			#i dont know if the 300 is ok. theoretically its the speed. check if i need to resize the data.
-			control_head_msg.layout.dim = [MAD() , MAD()]
-			# control_head_msg.layout.dim[0].label = "speed"
-			# control_head_msg.layout.dim[0].size = 12
-			# control_head_msg.layout.dim[0].stride = 12
-			# control_head_msg.layout.dim[1].label = "angle"
-			# control_head_msg.layout.dim[1].size = 100
-			# control_head_msg.layout.dim[1].stride = 100
-			# control_head_msg.layout.data_offset = 10
-			#angle needs to be in degrees and the center of the robot is at 90 degrees
-			angle = 90 - (angle * 360 / (2 * math.pi))
-			if angle < 5: 
-				angle = 5
-			elif angle > 175:
-				angle = 175 
-			control_head_msg.data = [0 , 200]
-			control_head_msg.data[1] = 100
-			control_head_msg.data[0] = angle
+			#compare the goal angle with the head orientation
+			# print "angle and pitch : " , angle ," | " , yaw_head , "  | yaw_body : " , yaw_body, "  |  raw: " , angle_raw , "  | refined : ", angle_refined
+			if abs(angle - yaw_head) > 0.1:	#tune this threshold
+				control_head_msg = head_msg() 	#also has a layout (MultiArrayLayout. Maybe i need to work with that)
+				#i dont know if the 300 is ok. theoretically its the speed. check if i need to resize the data.
+				control_head_msg.layout.dim = [MAD() , MAD()]
+				# control_head_msg.layout.dim[0].label = "speed"
+				# control_head_msg.layout.dim[0].size = 12
+				# control_head_msg.layout.dim[0].stride = 12
+				# control_head_msg.layout.dim[1].label = "angle"
+				# control_head_msg.layout.dim[1].size = 100
+				# control_head_msg.layout.dim[1].stride = 100
+				# control_head_msg.layout.data_offset = 10
+				#angle needs to be in degrees and the center of the robot is at 90 degrees
+				angle = 90 - (angle * 360 / (2 * math.pi))
+				if angle < 5: 
+					angle = 5
+				elif angle > 175:
+					angle = 175 
+				control_head_msg.data = [0 , 200]
+				control_head_msg.data[1] = 100
+				control_head_msg.data[0] = angle
 
-			self.head_publisher.publish(control_head_msg)
-			log("UPDATED HEAD ANGLE TO %f", angle)
+				self.head_publisher.publish(control_head_msg)
+				log("UPDATED HEAD ANGLE TO %f", angle)
 		return
 		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
 		

@@ -345,7 +345,7 @@ void ObstacleLayer::pointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& 
 void ObstacleLayer::dynGoalCallback(const costmap_2d::dyn_goal_msg& message)
 {
   dyn_goal_controller_= message;
-  ROS_INFO("RECEIVED DYN_GOAL");
+  //ROS_INFO("RECEIVED DYN_GOAL");
 }
 
 void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x,
@@ -416,27 +416,27 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
 
       if (dyn_goal_controller_.activated)
       {
-        // compute the squared distance from the hitpoint to the dynamic goal
-        tf::TransformListener listener;
-
         tf::StampedTransform transform;
         //check somehow if these tfs exist //// for this i tried this if cantransform // another idea is using frame exists
         std::string error;
-        if (listener.canTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0),&error)){
-        //if(listener.frameExists(dyn_goal_controller_.origin_tf) && listener.frameExists(dyn_goal_controller_.dyn_goal_tf)){
+        if (tf_->canTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0),&error)){
+        //if(tf_->frameExists("/" + dyn_goal_controller_.origin_tf) && tf_->frameExists("/" + dyn_goal_controller_.dyn_goal_tf)){
           try{
-            listener.lookupTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0), transform);
+            tf_->lookupTransform(dyn_goal_controller_.origin_tf, dyn_goal_controller_.dyn_goal_tf, ros::Time(0), transform);
           }catch (tf::TransformException ex){
             ROS_ERROR("%s",ex.what());
             ros::Duration(1.0).sleep();
           }
-          double sq_dist_dyn = pow((mx - transform.getOrigin().x()),2) + pow((my-transform.getOrigin().y()),2);
-          ROS_INFO("X: %d | Y: %d | dist: %f",mx,my,sq_dist_dyn);
-          if (sq_dist_dyn < 1) //to tune
+
+          double sq_dist_dyn = pow((px - transform.getOrigin().x()),2) + pow((py-transform.getOrigin().y()),2);
+
+          if (sq_dist_dyn < 0.25) //to tune
+            // ROS_INFO("px: %f | py: %f | dist: %f [%f||%f]...%i",px,py,sq_dist_dyn,transform.getOrigin().x(),transform.getOrigin().y(),i);
             continue;
+
         }else{
-          ROS_ERROR("error in getting the transform from target dyn goal: %s",error.c_str());
-        }
+          ROS_WARN("Error in getting the transform from target dyn goal: %s",error.c_str());
+        } 
       }
 
       unsigned int index = getIndex(mx, my);
