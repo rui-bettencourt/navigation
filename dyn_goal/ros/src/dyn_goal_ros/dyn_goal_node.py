@@ -13,15 +13,16 @@ from move_base_msgs.msg import MoveBaseGoal as move_base_goal
 from std_msgs.msg import MultiArrayDimension as MAD
 from dyn_goal.msg import dyn_goal_msg
 from std_msgs.msg import UInt8MultiArray as head_msg
+from nav_msgs.msg import OccupancyGrid
 
 
 from dyn_goal.my_ros_independent_class import my_generic_sum_function
    
-
+#memory variables (trans is the last known poi position; rot last known poi orientation; control: if it is the first time)
 class Memory:
 	trans = geometry_msgs.Point()
 	rot = geometry_msgs.Quaternion()
-	control = 0
+	control = False
 
 class Control:
 	activated = False  #TODO: Just for developement. Change this to False when testing
@@ -47,6 +48,9 @@ class DynGoal(object):
 		#Subscribe to Person position
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
 
+		#Subscribe to Costmap
+		self.sub_costmap_2d = rospy.Subscriber("",OccupancyGrid, self.costmapCallback)
+
 		#Thresholds
 		self.MovementThreshold = 0.25
 
@@ -59,6 +63,8 @@ class DynGoal(object):
 		rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',-0.6)
 		rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.6)
 		self.sub_control.unregister()
+		self.poi_pose.unregister()
+		self.sub_costmap_2d.unregister()
 		log("Hope you enjoyed our service! Come back any time!")
 	
 
@@ -67,16 +73,16 @@ class DynGoal(object):
 		while not rospy.is_shutdown():
 			if self.control.activated:
 				#set velocity to only front and a little slower
-				if self.memory.control == 0:
+				if not self.memory.control:
 					rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',0.0)
 					rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.5)
 				#obtain goal tf location in relation to origin tf (default is goal=tracked_person and origin=base_link)
 				try:
-				    (pre_trans,rot) = self.listener.lookupTransform(self.control.origin, self.control.goal, rospy.Time(0))
+				    (trans,rot) = self.listener.lookupTransform(self.control.origin, self.control.goal, rospy.Time(0))
 				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 				    continue
 
-				trans_goal = self.vectortToPoint(pre_trans)
+				person_position = self.vectortToPoint(trans)
 
 				#get pose of the robot
 				try:
@@ -89,21 +95,23 @@ class DynGoal(object):
 
 				#check if it's close enough to the target using the distance threshold indicated in the control topic message
 				if self.isGoalClose(trans_robot):
-					self.memory.trans = trans_goal
-					trans_goal = trans_robot
+					self.memory.trans = person_position
+					person_position = trans_robot
 
 
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
 				#cycle if the pose of the tf is different
-				if self.hasTargetMoved(trans_goal) or self.memory.control == 0:	
+				if self.hasTargetMoved(person_position) or not self.memory.control:
 					print "Target moved!"
 					new_pose = pose()
 					new_pose.header.stamp = rospy.Time.now()
 					#new_pose.header.seq = 2
 					new_pose.header.frame_id = "map"		#TODO: check if this is right
-					new_pose.pose.position.x = trans_goal.x
-					new_pose.pose.position.y = trans_goal.y
-					new_pose.pose.position.z = trans_goal.z
+					#Change person_position to be:
+					#person_position = chooseGoal(person_position, trans_robot)
+					new_pose.pose.position.x = person_position.x
+					new_pose.pose.position.y = person_position.y
+					new_pose.pose.position.z = person_position.z
 					new_pose.pose.orientation.x = rot[0]
 					new_pose.pose.orientation.y = rot[1]
 					new_pose.pose.orientation.z = rot[2]
@@ -117,19 +125,19 @@ class DynGoal(object):
 
 					#add threshold in differences (maybe in a function and call in the if maybe)
 					#saves in memory the last pose sent so that it sends only different poses, and not copies
-					self.memory.trans = trans_goal
+					self.memory.trans = person_position
 					self.memory.rot = rot  #rot is probably not needed
-					self.memory.control = 1
+					self.memory.control = True
 				else:
-					self.memory.trans = trans_goal
+					self.memory.trans = person_position
 					self.memory.rot = rot  #rot is probably not needed
-					self.memory.control = 1
+					self.memory.control = True
 
 				self.updateHeadOrientation()
 
-			elif self.memory.control == 1:
+			elif self.memory.control:
 				#reset the control variable and the speed params
-				self.memory.control = 0
+				self.memory.control = False
 				rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',-0.6)
 				rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.6)
 		
@@ -154,6 +162,48 @@ class DynGoal(object):
 		else:
 			return False
 
+    #Function used to sort the points on the circle around the target goal by distance to the robot
+    def distanceToRobot(self,point):
+        return self.dist2D(point.x, point.y, self.robot_position.x, self.robot_position.y)
+
+    #Function that determines if a certain point on the map is available to be set as goal
+    def isCellAvailable(self, point):
+        #get the costmap by subscribing to nav_msgs/OccupancyGrid.msg
+        return True
+
+    def chooseGoal(self,person_position, robot_position):
+        #number of points to check in the circumference
+        number_points = int(self.control.dist * 50)
+        #radius of the circle
+        r = self.control.dist
+
+        self.robot_position = robot_position
+
+
+        #Simple solution
+        #make a line from the person_position and the robot position. Use the point at self.control.dist
+
+        #make a circle of positions, check which ones are closer to the robot, and if it is reachable
+        circle = []
+        for i in range(0,number_points):
+            point = Point()
+            point.x = round(math.cos(2*math.pi/number_points*i)*r,2) + person_position.x
+            point.y = round(math.sin(2*math.pi/number_points*i)*r,2) + person_position.y
+            point.z = 0
+            circle.append(point)
+        #order the circle variable by proximity to the ROBOT
+        circle.sort(key=self.distanceToRobot)
+
+        #iterate the ordered set check if it is a freeeeee cell
+        while not rospy.is_shutdown() and len(circle) != 0:
+            if not self.isCellAvailable(circle[0]):
+                del circle[0]
+            else:
+                break
+        #BONUS: check if there is a path from this point to the target ;)
+
+        #return goal, that is the closest point to the robot that was not removed from the list by the previous conditions
+        return circle[0]
 
 	def dist2D(self,x1,y1,x2,y2):
 		return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)) 
@@ -244,6 +294,10 @@ class DynGoal(object):
 	#Callback called when receiving a control instruction		
 	def poiCallback(self, data):
 		self.poiPose = data
+
+	#Callback for the costmap
+	def costmapCallback(self, data):
+		self.map_ = data		#TODO: maybe smthg more
 
 
 def main():
