@@ -6,6 +6,9 @@ import geometry_msgs.msg as geometry_msgs
 import matplotlib.pyplot as plt 
 #Choose a point close to the target person and set it as a goal
 
+#Importing dijkstra functions
+from dijkstra import Graph
+
 class Control:
 	activated = False  #TODO: Just for developement. Change this to False when testing
 	goal = "tracked_person"
@@ -19,11 +22,14 @@ class test(object):
         self.person_position = self.vectortToPoint([1,1,0])
         self.robot_position = self.vectortToPoint([1,5,0])
         
+    #Function used to sort the points on the circle around the target goal by distance to the robot
     def distanceToRobot(self,point):
         return self.dist2D(point.x, point.y, self.robot_position.x, self.robot_position.y)
     
+    #Function that determines if a certain point on the map is available to be set as goal
     def isCellAvailable(self, point):
-        return False
+        #get the costmap by subscribing to nav_msgs/OccupancyGrid.msg
+        return True
 
     def chooseGoal(self,person_position, robot_position):
         #number of points to check in the circumference
@@ -52,13 +58,12 @@ class test(object):
         while not rospy.is_shutdown() and len(circle) != 0:
             if not self.isCellAvailable(circle[0]):
                 del circle[0]
-                print len(circle)
             else:
                 break
-        print len(circle)
         #BONUS: check if there is a path from this point to the target ;)     
 
-
+        #return goal, that is the closest point to the robot that was not removed from the list by the previous conditions
+        return circle[0]
 
 
         # x = [] 
@@ -95,7 +100,10 @@ class test(object):
 def main():
     my_object = test()
 	# call run method of class DynGoal
-    my_object.chooseGoal(my_object.person_position, my_object.robot_position)
+    print my_object.chooseGoal(my_object.person_position, my_object.robot_position)
+    
+    graph = Graph([("a", "b"),  ("a", "c"),  ("a", "f"), ("b", "c"),("b", "d"), ("c", "d"), ("c", "f"),  ("d", "e"),("e", "f")])
+    print graph.dijkstra("a", "e")
     
 if __name__ == '__main__':
 	main()

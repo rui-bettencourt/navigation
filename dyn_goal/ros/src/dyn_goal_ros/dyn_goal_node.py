@@ -15,6 +15,8 @@ from dyn_goal.msg import dyn_goal_msg
 from std_msgs.msg import UInt8MultiArray as head_msg
 from nav_msgs.msg import OccupancyGrid
 
+#Importing dijkstra functions
+from dijkstra import Graph
 
 from dyn_goal.my_ros_independent_class import my_generic_sum_function
    
