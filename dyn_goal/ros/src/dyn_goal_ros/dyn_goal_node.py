@@ -9,6 +9,7 @@ import std_msgs
 from rospy import loginfo as log
 from geometry_msgs.msg import PoseStamped as pose
 from geometry_msgs.msg import PointStamped as point
+from geometry_msgs.msg import Point
 from move_base_msgs.msg import MoveBaseGoal as move_base_goal
 from std_msgs.msg import MultiArrayDimension as MAD
 from dyn_goal.msg import dyn_goal_msg
@@ -51,10 +52,10 @@ class DynGoal(object):
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
 
 		#Subscribe to Costmap
-		self.sub_costmap_2d = rospy.Subscriber("",OccupancyGrid, self.costmapCallback)
+		self.sub_costmap_2d = rospy.Subscriber("/move_base/local_costmap/costmap",OccupancyGrid, self.costmapCallback)
 
 		#Thresholds
-		self.MovementThreshold = 0.25
+		self.MovementThreshold = 0.1
 
 		#initializations
 		self.memory = Memory()
@@ -96,9 +97,9 @@ class DynGoal(object):
 				trans_robot = self.vectortToPoint(self.trans_robot)
 
 				#check if it's close enough to the target using the distance threshold indicated in the control topic message
-				if self.isGoalClose(trans_robot):
-					self.memory.trans = person_position
-					person_position = trans_robot
+				# if self.isGoalClose(trans_robot):
+				# 	self.memory.trans = person_position
+				# 	person_position = trans_robot
 
 
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
@@ -110,7 +111,7 @@ class DynGoal(object):
 					#new_pose.header.seq = 2
 					new_pose.header.frame_id = "map"		#TODO: check if this is right
 					#Change person_position to be:
-					#person_position = chooseGoal(person_position, trans_robot)
+					person_position = self.chooseGoal(person_position, trans_robot)
 					new_pose.pose.position.x = person_position.x
 					new_pose.pose.position.y = person_position.y
 					new_pose.pose.position.z = person_position.z
@@ -165,47 +166,47 @@ class DynGoal(object):
 			return False
 
     #Function used to sort the points on the circle around the target goal by distance to the robot
-    def distanceToRobot(self,point):
-        return self.dist2D(point.x, point.y, self.robot_position.x, self.robot_position.y)
+	def distanceToRobot(self,point):
+		return self.dist2D(point.x, point.y, self.robot_position.x, self.robot_position.y)
 
     #Function that determines if a certain point on the map is available to be set as goal
-    def isCellAvailable(self, point):
+	def isCellAvailable(self, point):
         #get the costmap by subscribing to nav_msgs/OccupancyGrid.msg
-        return True
+		return True
 
-    def chooseGoal(self,person_position, robot_position):
+	def chooseGoal(self,person_position, robot_position):
         #number of points to check in the circumference
-        number_points = int(self.control.dist * 50)
+		number_points = int(self.control.dist * 50)
         #radius of the circle
-        r = self.control.dist
+		r = self.control.dist
 
-        self.robot_position = robot_position
+		self.robot_position = robot_position
 
 
         #Simple solution
         #make a line from the person_position and the robot position. Use the point at self.control.dist
 
         #make a circle of positions, check which ones are closer to the robot, and if it is reachable
-        circle = []
-        for i in range(0,number_points):
-            point = Point()
-            point.x = round(math.cos(2*math.pi/number_points*i)*r,2) + person_position.x
-            point.y = round(math.sin(2*math.pi/number_points*i)*r,2) + person_position.y
-            point.z = 0
-            circle.append(point)
+		circle = []
+		for i in range(0,number_points):
+			point = Point()
+			point.x = round(math.cos(2*math.pi/number_points*i)*r,2) + person_position.x
+			point.y = round(math.sin(2*math.pi/number_points*i)*r,2) + person_position.y
+			point.z = 0
+			circle.append(point)
         #order the circle variable by proximity to the ROBOT
-        circle.sort(key=self.distanceToRobot)
+		circle.sort(key=self.distanceToRobot)
 
         #iterate the ordered set check if it is a freeeeee cell
-        while not rospy.is_shutdown() and len(circle) != 0:
-            if not self.isCellAvailable(circle[0]):
-                del circle[0]
-            else:
-                break
+		while not rospy.is_shutdown() and len(circle) != 0:
+			if not self.isCellAvailable(circle[0]):
+				del circle[0]
+			else:
+				break
         #BONUS: check if there is a path from this point to the target ;)
 
         #return goal, that is the closest point to the robot that was not removed from the list by the previous conditions
-        return circle[0]
+		return circle[0]
 
 	def dist2D(self,x1,y1,x2,y2):
 		return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)) 
