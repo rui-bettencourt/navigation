@@ -2,6 +2,7 @@
 import roslib
 import rospy
 import math
+import numpy as np
 import tf
 import geometry_msgs.msg as geometry_msgs
 import std_msgs
@@ -58,7 +59,7 @@ class DynGoal(object):
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
 
 		#Subscribe to Costmap
-		#self.sub_costmap_2d = rospy.Subscriber("/move_base/global_costmap/costmap_updates",OccupancyGridUpdate, self.costmapUpdateCallback)
+		self.sub_costmap_2d_update = rospy.Subscriber("/move_base/global_costmap/costmap_updates",OccupancyGridUpdate, self.costmapUpdateCallback)
 		self.sub_costmap_2d = rospy.Subscriber("/move_base/global_costmap/costmap",OccupancyGrid, self.costmapCallback)
 
 		#Thresholds
@@ -68,6 +69,7 @@ class DynGoal(object):
 		self.memory = Memory()
 		self.control = Control()
   		self.map_ = None
+		self.map_info = None
 		self.updatingGoal = False
 		self.rate = rospy.Rate(10.0)
 
@@ -77,6 +79,7 @@ class DynGoal(object):
 		self.sub_control.unregister()
 		self.poi_pose.unregister()
 		self.sub_costmap_2d.unregister()
+		self.sub_costmap_2d_update.unregister()
 		log("Hope you enjoyed our service! Come back any time!")
 	
 
@@ -216,7 +219,10 @@ class DynGoal(object):
         #BONUS: check if there is a path from this point to the target ;)
 
         #return goal, that is the closest point to the robot that was not removed from the list by the previous conditions
-		return circle[0]
+		if len(circle) >=0:
+			return circle[0]
+		else:
+			return person_position
 
 	def dist2D(self,x1,y1,x2,y2):
 		return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)) 
@@ -339,7 +345,7 @@ class DynGoal(object):
   
   	#Callback for the costmap
 	def costmapCallback(self, data):
-		self.map_ = data		#TODO: maybe smthg more
+		self.map_info = data		#TODO: maybe smthg more
   		print("t=" + str(self.map_.info.map_load_time))
 		print("resolution=" + str(self.map_.info.resolution))
 		print("width=" + str(self.map_.info.width))
@@ -356,6 +362,16 @@ class DynGoal(object):
 		file_object.write(str(self.map_.data))
 		file_object.close()
 		print("amount of cells: " + str(len(self.map_.data)))
+
+		self.map_ = np.arrange(data.info.width*data.info.height).reshape(data.info.width,data.info.height)
+		#self.map_ = np.zeros((data.info.width,data.info.height))
+		print("array shape:")
+		print(self.map_.shape)
+		for i in range(0,data.info.height):
+			for j in range(0,data.info.width):
+				self.map_[j][i] = data.data[i*data.info.width + j]
+		self.map_info.info = None
+		#print(self.map_)
 
 def main():
 	# create object of the class DynGoal (constructor will get executed!)
