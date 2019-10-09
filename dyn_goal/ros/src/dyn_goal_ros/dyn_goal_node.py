@@ -5,6 +5,7 @@ import math
 import tf
 import geometry_msgs.msg as geometry_msgs
 import std_msgs
+import rospkg
 
 from rospy import loginfo as log
 from geometry_msgs.msg import PoseStamped as pose
@@ -14,6 +15,7 @@ from move_base_msgs.msg import MoveBaseGoal as move_base_goal
 from std_msgs.msg import MultiArrayDimension as MAD
 from dyn_goal.msg import dyn_goal_msg
 from std_msgs.msg import UInt8MultiArray as head_msg
+from map_msgs.msg import OccupancyGridUpdate
 from nav_msgs.msg import OccupancyGrid
 
 #Importing dijkstra functions
@@ -40,10 +42,10 @@ class DynGoal(object):
 		self.listener = tf.TransformListener()
 
 	 	#Topic to publish the pose you want to reach
-		self.pose_publisher = rospy.Publisher('/move_base_simple/goal', pose)
+		self.pose_publisher = rospy.Publisher('/move_base_simple/goal', pose, queue_size=1)
 
 		#Topic to publish the pose you want to reach
-		self.head_publisher = rospy.Publisher('/cmd_head', head_msg)
+		self.head_publisher = rospy.Publisher('/cmd_head', head_msg, queue_size=2)
 
 		#Subscribe to the topic that controls the dynamic goal operation
 		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback) 
@@ -52,7 +54,8 @@ class DynGoal(object):
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
 
 		#Subscribe to Costmap
-		self.sub_costmap_2d = rospy.Subscriber("/move_base/local_costmap/costmap",OccupancyGrid, self.costmapCallback)
+		#self.sub_costmap_2d = rospy.Subscriber("/move_base/global_costmap/costmap_updates",OccupancyGridUpdate, self.costmapUpdateCallback)
+		self.sub_costmap_2d = rospy.Subscriber("/move_base/global_costmap/costmap",OccupancyGrid, self.costmapCallback)
 
 		#Thresholds
 		self.MovementThreshold = 0.1
@@ -60,6 +63,7 @@ class DynGoal(object):
 		#initializations
 		self.memory = Memory()
 		self.control = Control()
+  		self.map_ = None
 		self.rate = rospy.Rate(10.0)
 
 	def destroySubscribers(self):
@@ -105,7 +109,7 @@ class DynGoal(object):
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
 				#cycle if the pose of the tf is different
 				if self.hasTargetMoved(person_position) or not self.memory.control:
-					print "Target moved!"
+					print("Target moved!")
 					new_pose = pose()
 					new_pose.header.stamp = rospy.Time.now()
 					#new_pose.header.seq = 2
@@ -122,7 +126,7 @@ class DynGoal(object):
 
 					for i in range(1,3):
 						new_pose.header.seq = i
-						print new_pose
+						print(new_pose)
 						self.pose_publisher.publish(new_pose)
 						rospy.sleep(1)
 
@@ -160,7 +164,7 @@ class DynGoal(object):
 	def isGoalClose(self,trans):
 		dist = self.dist2D(self.memory.trans.x , self.memory.trans.y , trans.x , trans.y)
 		if dist < self.control.dist:
-			print "Too close!!!!!!!!!!!!"
+			print("Too close!!!!!!!!!!!!")
 			return True
 		else:
 			return False
@@ -299,9 +303,43 @@ class DynGoal(object):
 		self.poiPose = data
 
 	#Callback for the costmap
+	def costmapUpdateCallback(self, data):
+		self.map_ = data		#TODO: maybe smthg more
+  		# print("x=" + str(self.map_.x))
+		# print("y=" + str(self.map_.y))
+		# print("width=" + str(self.map_.width))
+		# print("height=" + str(self.map_.height))
+		# # get an instance of RosPack with the default search paths
+		# rospack = rospkg.RosPack()
+
+        # # get the file path for rospy_tutorials
+		# save_path = rospack.get_path('dyn_goal') + '/logs'
+        # # print(save_path)
+
+		# file_object = open(save_path+'/map_updates.txt', 'w')
+		# file_object.write(str(self.map_.data))
+		# file_object.close()
+		# print("amount of cells: " + str(len(self.map_.data)))
+  
+  	#Callback for the costmap
 	def costmapCallback(self, data):
 		self.map_ = data		#TODO: maybe smthg more
+  		print("t=" + str(self.map_.info.map_load_time))
+		print("resolution=" + str(self.map_.info.resolution))
+		print("width=" + str(self.map_.info.width))
+		print("height=" + str(self.map_.info.height))
+		print(self.map_.info.origin)
+		# get an instance of RosPack with the default search paths
+		rospack = rospkg.RosPack()
 
+        # get the file path for rospy_tutorials
+		save_path = rospack.get_path('dyn_goal') + '/logs'
+        # print(save_path)
+
+		file_object = open(save_path+'/map.txt', 'w')
+		file_object.write(str(self.map_.data))
+		file_object.close()
+		print("amount of cells: " + str(len(self.map_.data)))
 
 def main():
 	# create object of the class DynGoal (constructor will get executed!)
