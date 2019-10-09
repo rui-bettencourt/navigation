@@ -302,7 +302,10 @@ class DynGoal(object):
 		self.control.activated = data.activated
 		self.control.goal = data.dyn_goal_tf
 		self.control.origin = data.origin_tf
-		self.control.dist = data.dist
+		if data.dist >= 0:
+			self.control.dist = data.dist
+		else:
+			self.control.dist = 1.0
 
 	#Callback called when receiving a control instruction		
 	def poiCallback(self, data):
