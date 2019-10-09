@@ -10,6 +10,7 @@ import rospkg
 from rospy import loginfo as log
 from geometry_msgs.msg import PoseStamped as pose
 from geometry_msgs.msg import PointStamped as point
+from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Point
 from move_base_msgs.msg import MoveBaseGoal as move_base_goal
 from std_msgs.msg import MultiArrayDimension as MAD
@@ -48,7 +49,10 @@ class DynGoal(object):
 		self.head_publisher = rospy.Publisher('/cmd_head', head_msg, queue_size=2)
 
 		#Subscribe to the topic that controls the dynamic goal operation
-		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback) 
+		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback)
+
+		#Subscribe to the topic of the static goal
+		self.sub_static_goal = rospy.Subscriber("/move_base_simple/goal",PoseStamped, self.staticCallback) 
 
 		#Subscribe to Person position
 		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
@@ -64,6 +68,7 @@ class DynGoal(object):
 		self.memory = Memory()
 		self.control = Control()
   		self.map_ = None
+		self.updatingGoal = False
 		self.rate = rospy.Rate(10.0)
 
 	def destroySubscribers(self):
@@ -127,6 +132,7 @@ class DynGoal(object):
 					for i in range(1,3):
 						new_pose.header.seq = i
 						print(new_pose)
+						self.updatingGoal = True
 						self.pose_publisher.publish(new_pose)
 						rospy.sleep(1)
 
@@ -301,6 +307,13 @@ class DynGoal(object):
 	#Callback called when receiving a control instruction		
 	def poiCallback(self, data):
 		self.poiPose = data
+
+	#Callback called when a static goal is received, it will deactivate the dynamic goal to ensure the mutual exclusivity
+	def staticCallback(self, data):
+		if self.updatingGoal:
+			self.updatingGoal = False	#this means that the message received was sent by dyn_goal and should not deactivate the dyn_goal
+		else:
+			self.control.activated = False
 
 	#Callback for the costmap
 	def costmapUpdateCallback(self, data):
