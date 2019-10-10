@@ -12,7 +12,7 @@ from rospy import loginfo as log
 from geometry_msgs.msg import PoseStamped as pose
 from geometry_msgs.msg import PointStamped as point
 from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Pose
 from move_base_msgs.msg import MoveBaseGoal as move_base_goal
 from std_msgs.msg import MultiArrayDimension as MAD
 from dyn_goal.msg import dyn_goal_msg
@@ -63,7 +63,9 @@ class DynGoal(object):
 		self.sub_costmap_2d = rospy.Subscriber("/move_base/global_costmap/costmap",OccupancyGrid, self.costmapCallback)
 
 		#Thresholds
-		self.MovementThreshold = 0.1
+		self.movementThreshold = 0.1
+		self.availabilityThreshold = 20
+		self.convert_offset = 0.0
 
 		#initializations
 		self.memory = Memory()
@@ -97,7 +99,7 @@ class DynGoal(object):
 				except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 				    continue
 
-				person_position = self.vectortToPoint(trans)
+				target_position = self.vectortToPoint(trans)
 
 				#get pose of the robot
 				try:
@@ -110,27 +112,28 @@ class DynGoal(object):
 
 				#check if it's close enough to the target using the distance threshold indicated in the control topic message
 				# if self.isGoalClose(trans_robot):
-				# 	self.memory.trans = person_position
-				# 	person_position = trans_robot
+				# 	self.memory.trans = target_position
+				# 	target_position = trans_robot
 
 
 				#to follow the first time, memory_control is set to 0, and then 1 so it only enters the refresh goal pose
 				#cycle if the pose of the tf is different
-				if self.hasTargetMoved(person_position) or not self.memory.control:
+				if self.hasTargetMoved(target_position) or not self.memory.control:
 					print("Target moved!")
 					new_pose = pose()
 					new_pose.header.stamp = rospy.Time.now()
 					#new_pose.header.seq = 2
 					new_pose.header.frame_id = "map"		#TODO: check if this is right
-					#Change person_position to be:
-					person_position = self.chooseGoal(person_position, trans_robot)
-					new_pose.pose.position.x = person_position.x
-					new_pose.pose.position.y = person_position.y
-					new_pose.pose.position.z = person_position.z
-					new_pose.pose.orientation.x = rot[0]
-					new_pose.pose.orientation.y = rot[1]
-					new_pose.pose.orientation.z = rot[2]
-					new_pose.pose.orientation.w = rot[3]
+					#Change target_position to be:
+					final_position = self.chooseGoal(target_position, trans_robot)
+					final_orientation = self.getAngle(final_position,target_position)
+					new_pose.pose.position.x = final_position.x
+					new_pose.pose.position.y = final_position.y
+					new_pose.pose.position.z = final_position.z
+					new_pose.pose.orientation.x = final_orientation[0]
+					new_pose.pose.orientation.y = final_orientation[1]
+					new_pose.pose.orientation.z = final_orientation[2]
+					new_pose.pose.orientation.w = final_orientation[3]
 
 					for i in range(1,3):
 						new_pose.header.seq = i
@@ -141,11 +144,11 @@ class DynGoal(object):
 
 					#add threshold in differences (maybe in a function and call in the if maybe)
 					#saves in memory the last pose sent so that it sends only different poses, and not copies
-					self.memory.trans = person_position
+					self.memory.trans = final_position
 					self.memory.rot = rot  #rot is probably not needed
 					self.memory.control = True
 				else:
-					self.memory.trans = person_position
+					self.memory.trans = target_position
 					self.memory.rot = rot  #rot is probably not needed
 					self.memory.control = True
 
@@ -156,14 +159,14 @@ class DynGoal(object):
 				self.memory.control = False
 				rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',-0.6)
 				rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.6)
-		
+
 			#When it is off make it sleep until a new message is sent to the control topic, otherwise cycle
 			self.rate.sleep()
 
 	#Function to detect if the target movement is relevant to resend as goal
 	def hasTargetMoved(self,trans):
 		dist = self.dist2D(self.memory.trans.x , self.memory.trans.y , trans.x , trans.y)
-		if dist > self.MovementThreshold:
+		if dist > self.movementThreshold:
 			return True
 		else:
 			return False
@@ -185,9 +188,15 @@ class DynGoal(object):
     #Function that determines if a certain point on the map is available to be set as goal
 	def isCellAvailable(self, point):
         #get the costmap by subscribing to nav_msgs/OccupancyGrid.msg
-		return True
+		[x,y]=self.worldToMap(point.x,point.y)
+		cost = self.map_[int(round(x))][int(round(y))]
+		print("cost is: " + str(cost))
+		if cost == 0:
+			return True
+		else:
+			return False
 
-	def chooseGoal(self,person_position, robot_position):
+	def chooseGoal(self,target_position, robot_position):
         #number of points to check in the circumference
 		number_points = int(self.control.dist * 50)
         #radius of the circle
@@ -195,34 +204,33 @@ class DynGoal(object):
 
 		self.robot_position = robot_position
 
+		if r > 0:
+			#make a circle of positions, check which ones are closer to the robot, and if it is reachable
+			circle = []
+			for i in range(0,number_points):
+				point = Point()
+				point.x = round(math.cos(2*math.pi/number_points*i)*r,2) + target_position.x
+				point.y = round(math.sin(2*math.pi/number_points*i)*r,2) + target_position.y
+				point.z = 0
+				circle.append(point)
+			#order the circle variable by proximity to the ROBOT
+			circle.sort(key=self.distanceToRobot)
 
-        #Simple solution
-        #make a line from the person_position and the robot position. Use the point at self.control.dist
-
-        #make a circle of positions, check which ones are closer to the robot, and if it is reachable
-		circle = []
-		for i in range(0,number_points):
-			point = Point()
-			point.x = round(math.cos(2*math.pi/number_points*i)*r,2) + person_position.x
-			point.y = round(math.sin(2*math.pi/number_points*i)*r,2) + person_position.y
-			point.z = 0
-			circle.append(point)
-        #order the circle variable by proximity to the ROBOT
-		circle.sort(key=self.distanceToRobot)
-
-        #iterate the ordered set check if it is a freeeeee cell
-		while not rospy.is_shutdown() and len(circle) != 0:
-			if not self.isCellAvailable(circle[0]):
-				del circle[0]
-			else:
-				break
-        #BONUS: check if there is a path from this point to the target ;)
+			#iterate the ordered set check if it is a freeeeee cell
+			while not rospy.is_shutdown() and len(circle) != 0:
+				if not self.isCellAvailable(circle[0]):
+					del circle[0]
+				else:
+					break
+			#BONUS: check if there is a path from this point to the target ;)
+		else:
+			circle.append(target_position)
 
         #return goal, that is the closest point to the robot that was not removed from the list by the previous conditions
 		if len(circle) >=0:
 			return circle[0]
 		else:
-			return person_position
+			return target_position
 
 	def dist2D(self,x1,y1,x2,y2):
 		return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)) 
@@ -234,6 +242,26 @@ class DynGoal(object):
 		point.z = vector[2]
 		return point
 
+	def getAngle(self, origin, target):
+		angle_raw = math.atan((target.y- origin.y) / abs(target.x-origin.x))
+		#conditions to counter the decrease of the angle
+		if target.x-origin.x < 0 and angle_raw < 0:
+			angle_refined = - (math.pi + angle_raw)
+		elif target.x-origin.x < 0 and angle_raw > 0:
+			angle_refined = math.pi - angle_raw
+		else:
+			angle_refined = angle_raw
+
+		angle = angle_refined
+
+		#condition to solve the case where the calculated angle and the robot rotation are in different multiples of 2*pi
+		if angle > math.pi:
+			angle = angle - 2 * math.pi
+		elif angle < -math.pi:
+			angle = angle + 2 * math.pi
+
+		#get the rotation of the body
+		return tf.transformations.quaternion_from_euler(0,0,angle)
 
 	#Function that depending where the target is changes the orientation of the head to follow that target
 	def updateHeadOrientation(self):
@@ -274,7 +302,7 @@ class DynGoal(object):
 
 			#compare the goal angle with the head orientation
 			# print "angle and pitch : " , angle ," | " , yaw_head , "  | yaw_body : " , yaw_body, "  |  raw: " , angle_raw , "  | refined : ", angle_refined
-			if abs(angle - yaw_head) > 0.1:	#tune this threshold
+			if abs(angle - yaw_head) > 0.01:	#tune this threshold
 				control_head_msg = head_msg() 	#also has a layout (MultiArrayLayout. Maybe i need to work with that)
 				#i dont know if the 300 is ok. theoretically its the speed. check if i need to resize the data.
 				control_head_msg.layout.dim = [MAD() , MAD()]
@@ -301,7 +329,28 @@ class DynGoal(object):
 		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
 		
 		 
+	#Function to tranform a map coordinate into a world one
+	def mapToWorld(self, mx, my):
+		wx = self.map_info.info.origin.position.x + (mx + self.convert_offset) * self.map_info.info.resolution
+		wy = self.map_info.info.origin.position.y + (my + self.convert_offset) * self.map_info.info.resolution
+		return [wx, wy]
 
+	#Function to tranform a world coordinate into a map one
+	def worldToMap(self, wx, wy):
+		origin_x = self.map_info.info.origin.position.x
+		origin_y = self.map_info.info.origin.position.y
+		resolution = self.map_info.info.resolution
+
+		if (wx < origin_x or wy < origin_y):
+			return None
+
+		mx = (wx - origin_x) / resolution - self.convert_offset
+		my = (wy - origin_y) / resolution - self.convert_offset
+
+		if (mx < self.map_info.info.width and my < self.map_info.info.height):
+			return [mx , my]
+
+		return None
 			
 	#Callback called when receiving a control instruction		
 	def controlCallback(self, data):
@@ -312,6 +361,7 @@ class DynGoal(object):
 			self.control.dist = data.dist
 		else:
 			self.control.dist = 1.0
+		print(self.control.dist)
 
 	#Callback called when receiving a control instruction		
 	def poiCallback(self, data):
@@ -323,10 +373,12 @@ class DynGoal(object):
 			self.updatingGoal = False	#this means that the message received was sent by dyn_goal and should not deactivate the dyn_goal
 		else:
 			self.control.activated = False
+			print("Dyn_Goal deactivated")
 
 	#Callback for the costmap
-	def costmapUpdateCallback(self, data):
-		self.map_ = data		#TODO: maybe smthg more
+	def costmapUpdateCallback(self, data):  #TODO: need to update the map
+		x=0
+		#self.map_ = data		#TODO: maybe smthg more
   		# print("x=" + str(self.map_.x))
 		# print("y=" + str(self.map_.y))
 		# print("width=" + str(self.map_.width))
@@ -346,32 +398,19 @@ class DynGoal(object):
   	#Callback for the costmap
 	def costmapCallback(self, data):
 		self.map_info = data		#TODO: maybe smthg more
-  		print("t=" + str(self.map_.info.map_load_time))
-		print("resolution=" + str(self.map_.info.resolution))
-		print("width=" + str(self.map_.info.width))
-		print("height=" + str(self.map_.info.height))
-		print(self.map_.info.origin)
-		# get an instance of RosPack with the default search paths
-		rospack = rospkg.RosPack()
+		print("t=" + str(self.map_info.info.map_load_time))
+		print("resolution=" + str(self.map_info.info.resolution))
+		print("width=" + str(self.map_info.info.width))
+		print("height=" + str(self.map_info.info.height))
+		print(self.map_info.info.origin)
 
-        # get the file path for rospy_tutorials
-		save_path = rospack.get_path('dyn_goal') + '/logs'
-        # print(save_path)
+		#self.map_ = np.arrange(data.info.width*data.info.height).reshape(data.info.width,data.info.height)
+		self.map_ = np.zeros((data.info.width,data.info.height))
 
-		file_object = open(save_path+'/map.txt', 'w')
-		file_object.write(str(self.map_.data))
-		file_object.close()
-		print("amount of cells: " + str(len(self.map_.data)))
-
-		self.map_ = np.arrange(data.info.width*data.info.height).reshape(data.info.width,data.info.height)
-		#self.map_ = np.zeros((data.info.width,data.info.height))
-		print("array shape:")
-		print(self.map_.shape)
 		for i in range(0,data.info.height):
 			for j in range(0,data.info.width):
 				self.map_[j][i] = data.data[i*data.info.width + j]
-		self.map_info.info = None
-		#print(self.map_)
+		self.map_info.data = None
 
 def main():
 	# create object of the class DynGoal (constructor will get executed!)

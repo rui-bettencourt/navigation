@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-
+    <arg name="launch_nav"
+         default="false" />
+    <arg name="robot_env"
+         default="$(optenv ROBOT_ENV !!NO_ROBOT_ENV_SET!!)" />
 
 <!-- action lib servers -->
     <include if="$(arg launch_nav)" file="$(find mbot_actions)/ros/launch/run_action_servers.launch" >
