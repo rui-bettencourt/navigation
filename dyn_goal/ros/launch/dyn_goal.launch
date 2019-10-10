@@ -1,6 +1,39 @@
 <?xml version="1.0"?>
 <launch>
 
+
+<!-- action lib servers -->
+    <include if="$(arg launch_nav)" file="$(find mbot_actions)/ros/launch/run_action_servers.launch" >
+        <arg name="navigation_required"   default="true" />
+        <arg name="perception_required"   default="true" />
+        <arg name="manipulation_required" default="false" />
+        <arg name="hri_required"          default="true" />
+    </include>
+<!-- perception -->
+	<include file="$(find mbot_perception_launch)/launch/mbot_perception.launch" >
+        <arg name="max_detection_rate_specific"     value="5.0" />
+        <arg name="threshold_generic"               value="0.6" />
+    </include>
+
+	<group ns="/mbot_perception" >
+
+        <node pkg="topic_tools" type="relay" name="relay_people_trackers" output="log" args="people_tracker/tracked_people tracked_people">
+          <param name="lazy" value="true"/>
+        </node>
+
+    </group>
+
+ 	<include file="$(find bayes_people_tracker)/launch/bayes_people_tracker.launch"/>
+ 	<include file="$(find people_follower)/launch/people_follower.launch">
+        <arg name="launch_tracker"          value="true" />
+        <arg name="launch_navigation_stack" value="false" />
+        <arg name="launch_detector"         value="false" />
+        <arg name="launch_localizer"        value="true" />
+
+        <arg name="navigation_stack"        value="None" />
+        <arg name="poi_lost_timeout"        value="1.0" />
+	</include>
+
  <!-- Node collects a certain tf and sends it's coordinates to the goal of move base -->
  
  <node pkg="dyn_goal" type="dyn_goal_node" name="dyn_goal_node"
