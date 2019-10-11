@@ -20,6 +20,11 @@ from std_msgs.msg import UInt8MultiArray as head_msg
 from map_msgs.msg import OccupancyGridUpdate
 from nav_msgs.msg import OccupancyGrid
 
+#for rviz visualization
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Quaternion, Pose, Point, Vector3
+from std_msgs.msg import Header, ColorRGBA
+
 #Importing dijkstra functions
 from dijkstra import Graph
 
@@ -28,7 +33,6 @@ from dyn_goal.my_ros_independent_class import my_generic_sum_function
 #memory variables (trans is the last known poi position; rot last known poi orientation; control: if it is the first time)
 class Memory:
 	trans = geometry_msgs.Point()
-	rot = geometry_msgs.Quaternion()
 	control = False
 
 class Control:
@@ -49,6 +53,9 @@ class DynGoal(object):
 		#Topic to publish the pose you want to reach
 		self.head_publisher = rospy.Publisher('/cmd_head', head_msg, queue_size=2)
 
+		#Topic to draw in rviz
+		self.marker_publisher = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size=5)
+
 		#Subscribe to the topic that controls the dynamic goal operation
 		self.sub_control = rospy.Subscriber("/move_base_simple/dyn_goal", dyn_goal_msg , self.controlCallback)
 
@@ -64,7 +71,7 @@ class DynGoal(object):
 
 		#Thresholds
 		self.movementThreshold = 0.1
-		self.availabilityThreshold = 20
+		self.availabilityThreshold = 90
 		self.convert_offset = 0.0
 
 		#initializations
@@ -126,7 +133,10 @@ class DynGoal(object):
 					new_pose.header.frame_id = "map"		#TODO: check if this is right
 					#Change target_position to be:
 					final_position = self.chooseGoal(target_position, trans_robot)
-					final_orientation = self.getAngle(final_position,target_position)
+					if target_position != final_position and target_position.x != final_position.x:
+						final_orientation = self.getAngle(final_position,target_position)
+					else:
+						final_orientation = rot
 					new_pose.pose.position.x = final_position.x
 					new_pose.pose.position.y = final_position.y
 					new_pose.pose.position.z = final_position.z
@@ -144,12 +154,10 @@ class DynGoal(object):
 
 					#add threshold in differences (maybe in a function and call in the if maybe)
 					#saves in memory the last pose sent so that it sends only different poses, and not copies
-					self.memory.trans = final_position
-					self.memory.rot = rot  #rot is probably not needed
+					self.memory.trans = target_position
 					self.memory.control = True
 				else:
 					self.memory.trans = target_position
-					self.memory.rot = rot  #rot is probably not needed
 					self.memory.control = True
 
 				self.updateHeadOrientation()
@@ -186,15 +194,45 @@ class DynGoal(object):
 		return self.dist2D(point.x, point.y, self.robot_position.x, self.robot_position.y)
 
     #Function that determines if a certain point on the map is available to be set as goal
-	def isCellAvailable(self, point):
+	def isCellAvailable(self, point, occupancy):
         #get the costmap by subscribing to nav_msgs/OccupancyGrid.msg
 		[x,y]=self.worldToMap(point.x,point.y)
 		cost = self.map_[int(round(x))][int(round(y))]
 		print("cost is: " + str(cost))
-		if cost == 0:
+		if cost <= occupancy:
 			return True
 		else:
 			return False
+
+	#Several points in a straight line will be computed and checked to determine if there is a free straight path to the target
+	def isPathToTargetAvailable(self, origin, target):
+		result = True
+		#equation of the line y=mx+b
+		dx = target.x - origin.x
+		dy = target.y - origin.y
+		if dx != 0:
+			m = dy/dx
+		else:
+			return False #fix this, maybe by making an equation x=my+b
+		b = target.y - m*target.x
+
+		#Calculate the interval of x between  2 consecutive points in the straight line
+		number_of_points = int(round(20 * self.control.dist))
+		dx=float(dx)
+		interval = dx/number_of_points
+
+		line = []
+		for i in range(1,number_of_points/2):
+			point = Point()
+			point.x = origin.x + interval*i
+			point.y = m * point.x + b
+			point.z = 0
+			line.append(point)
+			if not self.isCellAvailable(point=point,occupancy=self.availabilityThreshold):
+				result = False
+		# self.show_spheres_in_rviz(line)
+		print("result of line is " + str(result))
+		return result
 
 	def chooseGoal(self,target_position, robot_position):
         #number of points to check in the circumference
@@ -215,19 +253,24 @@ class DynGoal(object):
 				circle.append(point)
 			#order the circle variable by proximity to the ROBOT
 			circle.sort(key=self.distanceToRobot)
-
-			#iterate the ordered set check if it is a freeeeee cell
+			self.show_spheres_in_rviz(circle)
+			#iterate the ordered set check if it is a free cell with a clear path to the goal
 			while not rospy.is_shutdown() and len(circle) != 0:
-				if not self.isCellAvailable(circle[0]):
+				if not self.isCellAvailable(circle[0],occupancy=0):
 					del circle[0]
+					print("deleting possible location")
 				else:
-					break
-			#BONUS: check if there is a path from this point to the target ;)
+					if not self.isPathToTargetAvailable(circle[0],target_position):
+						del circle[0]
+						print("deleting because of line")
+					else:
+						print("breaking")
+						break
 		else:
 			circle.append(target_position)
-
+		print("len of circle is :" + str(len(circle)))
         #return goal, that is the closest point to the robot that was not removed from the list by the previous conditions
-		if len(circle) >=0:
+		if len(circle) > 0:
 			return circle[0]
 		else:
 			return target_position
@@ -324,7 +367,7 @@ class DynGoal(object):
 				control_head_msg.data[0] = angle
 
 				self.head_publisher.publish(control_head_msg)
-				log("UPDATED HEAD ANGLE TO %f", angle)
+				# log("UPDATED HEAD ANGLE TO %f", angle)
 		return
 		# print "pos(pessoa): (", self.memory.trans[0], ",", self.memory.trans[1], ") | x(robot): (" , trans_robot[0], ",", trans_robot[1], ") | angulo e : ", angle
 		
@@ -360,7 +403,7 @@ class DynGoal(object):
 		if data.dist >= 0:
 			self.control.dist = data.dist
 		else:
-			self.control.dist = 1.0
+			self.control.dist = 1.2
 		print(self.control.dist)
 
 	#Callback called when receiving a control instruction		
@@ -398,11 +441,6 @@ class DynGoal(object):
   	#Callback for the costmap
 	def costmapCallback(self, data):
 		self.map_info = data		#TODO: maybe smthg more
-		print("t=" + str(self.map_info.info.map_load_time))
-		print("resolution=" + str(self.map_info.info.resolution))
-		print("width=" + str(self.map_info.info.width))
-		print("height=" + str(self.map_info.info.height))
-		print(self.map_info.info.origin)
 
 		#self.map_ = np.arrange(data.info.width*data.info.height).reshape(data.info.width,data.info.height)
 		self.map_ = np.zeros((data.info.width,data.info.height))
@@ -411,6 +449,20 @@ class DynGoal(object):
 			for j in range(0,data.info.width):
 				self.map_[j][i] = data.data[i*data.info.width + j]
 		self.map_info.data = None
+
+	def show_spheres_in_rviz(self, points):
+		marker_array = []
+		for i in range(0,len(points)):
+			marker = Marker(
+					type=Marker.SPHERE,
+					id=i,
+					lifetime=rospy.Duration(60),
+					pose=Pose(Point(points[i].x, points[i].y, points[i].z), Quaternion(0, 0, 0, 1)),
+					scale=Vector3(0.1, 0.1, 0.1),
+					header=Header(frame_id='/map'),
+					color=ColorRGBA(0.0, 0.0, 1.0, 0.8))
+			marker_array.append(marker)
+		self.marker_publisher.publish(marker_array)
 
 def main():
 	# create object of the class DynGoal (constructor will get executed!)
