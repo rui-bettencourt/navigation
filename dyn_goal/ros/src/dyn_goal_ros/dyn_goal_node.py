@@ -62,11 +62,7 @@ class DynGoal(object):
 		#Subscribe to the topic of the static goal
 		self.sub_static_goal = rospy.Subscriber("/move_base_simple/goal",PoseStamped, self.staticCallback) 
 
-		#Subscribe to Person position
-		self.poi_pose = rospy.Subscriber("/people_follower/person_position", point, self.poiCallback)
-
 		#Subscribe to Costmap
-		self.sub_costmap_2d_update = rospy.Subscriber("/move_base/global_costmap/costmap_updates",OccupancyGridUpdate, self.costmapUpdateCallback)
 		self.sub_costmap_2d = rospy.Subscriber("/move_base/global_costmap/costmap",OccupancyGrid, self.costmapCallback)
 
 		#Thresholds
@@ -86,9 +82,7 @@ class DynGoal(object):
 		rospy.set_param('/move_base/DWAPlannerROS/min_vel_x',-0.6)
 		rospy.set_param('/move_base/DWAPlannerROS/max_vel_x',0.6)
 		self.sub_control.unregister()
-		self.poi_pose.unregister()
 		self.sub_costmap_2d.unregister()
-		self.sub_costmap_2d_update.unregister()
 		log("Hope you enjoyed our service! Come back any time!")
 	
 
@@ -406,10 +400,6 @@ class DynGoal(object):
 			self.control.dist = 1.2
 		print(self.control.dist)
 
-	#Callback called when receiving a control instruction		
-	def poiCallback(self, data):
-		self.poiPose = data
-
 	#Callback called when a static goal is received, it will deactivate the dynamic goal to ensure the mutual exclusivity
 	def staticCallback(self, data):
 		if self.updatingGoal:
@@ -417,26 +407,6 @@ class DynGoal(object):
 		else:
 			self.control.activated = False
 			print("Dyn_Goal deactivated")
-
-	#Callback for the costmap
-	def costmapUpdateCallback(self, data):  #TODO: need to update the map
-		x=0
-		#self.map_ = data		#TODO: maybe smthg more
-  		# print("x=" + str(self.map_.x))
-		# print("y=" + str(self.map_.y))
-		# print("width=" + str(self.map_.width))
-		# print("height=" + str(self.map_.height))
-		# # get an instance of RosPack with the default search paths
-		# rospack = rospkg.RosPack()
-
-        # # get the file path for rospy_tutorials
-		# save_path = rospack.get_path('dyn_goal') + '/logs'
-        # # print(save_path)
-
-		# file_object = open(save_path+'/map_updates.txt', 'w')
-		# file_object.write(str(self.map_.data))
-		# file_object.close()
-		# print("amount of cells: " + str(len(self.map_.data)))
   
   	#Callback for the costmap
 	def costmapCallback(self, data):
